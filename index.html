@@ -12,8 +12,6 @@
     :root {
       --bg: #07090d;
       --panel: rgba(18,24,33,0.94);
-      --panel2: rgba(11,16,24,0.96);
-      --border: #2d3642;
       --gold: #d5b35f;
       --gold2: #ffd986;
       --red: #ef5350;
@@ -39,6 +37,19 @@
       height: 100vh;
       overflow: hidden;
       user-select: none;
+    }
+
+    body.shake {
+      animation: shake .28s linear;
+    }
+
+    @keyframes shake {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(-4px, 2px); }
+      40% { transform: translate(4px, -2px); }
+      60% { transform: translate(-3px, -2px); }
+      80% { transform: translate(3px, 2px); }
+      100% { transform: translate(0, 0); }
     }
 
     .app {
@@ -70,7 +81,11 @@
       z-index: 10;
     }
 
-    .enemy-meta, .player-meta { display: flex; align-items: center; gap: 14px; }
+    .enemy-meta, .player-meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
 
     .avatar {
       width: 44px;
@@ -95,10 +110,12 @@
       min-width: 48px;
       text-align: right;
     }
+
     .hp.enemy { color: var(--red); text-shadow: 0 0 14px rgba(239,83,80,.32); }
     .hp.player { color: var(--green); text-shadow: 0 0 14px rgba(99,209,139,.32); }
 
     .pips { display: flex; gap: 4px; }
+
     .pip {
       width: 11px;
       height: 11px;
@@ -106,6 +123,7 @@
       border: 1px solid #566272;
       background: #0a0d11;
     }
+
     .pip.full {
       background: var(--gold);
       border-color: var(--gold2);
@@ -113,6 +131,7 @@
     }
 
     .enemy-hand { display: flex; align-items: center; }
+
     .card-back {
       width: 42px;
       height: 58px;
@@ -145,6 +164,7 @@
     }
 
     .zone.enemy { border-bottom: 1px solid rgba(255,255,255,.04); }
+
     .zone-label {
       position: absolute;
       top: 10px;
@@ -159,7 +179,7 @@
     .wheel-center {
       position: absolute;
       left: 50%;
-      top: 50%;
+      top: 61%;
       transform: translate(-50%, -50%);
       z-index: 20;
       display: flex;
@@ -167,7 +187,15 @@
       align-items: center;
       gap: 12px;
       pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
     }
+
+    .wheel-center.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(.96);
+    }
+
     .wheel-center * { pointer-events: auto; }
 
     .intent-card {
@@ -179,6 +207,7 @@
       border: 1px solid rgba(255,255,255,.08);
       box-shadow: var(--shadow);
     }
+
     .intent-title {
       font-size: 12px;
       color: var(--muted);
@@ -186,8 +215,20 @@
       letter-spacing: 1px;
       font-weight: 800;
     }
-    .intent-main { margin-top: 5px; font-size: 20px; font-weight: 800; color: var(--gold2); }
-    .intent-sub { margin-top: 5px; min-height: 18px; font-size: 12px; color: #c5d0db; }
+
+    .intent-main {
+      margin-top: 5px;
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--gold2);
+    }
+
+    .intent-sub {
+      margin-top: 5px;
+      min-height: 18px;
+      font-size: 12px;
+      color: #c5d0db;
+    }
 
     .wheel-wrap {
       position: relative;
@@ -197,6 +238,7 @@
       place-items: center;
       filter: drop-shadow(0 16px 26px rgba(0,0,0,.55));
     }
+
     .wheel-pointer {
       position: absolute;
       top: -8px;
@@ -210,6 +252,7 @@
       z-index: 3;
       filter: drop-shadow(0 0 10px rgba(255,217,134,.45));
     }
+
     #wheel {
       width: 320px;
       height: 320px;
@@ -229,12 +272,14 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 10px;
     }
+
     .stat-box {
       border-radius: 10px;
       background: rgba(255,255,255,.04);
       border: 1px solid rgba(255,255,255,.04);
       padding: 8px 10px;
     }
+
     .stat-label {
       font-size: 11px;
       color: var(--muted);
@@ -242,7 +287,12 @@
       letter-spacing: .9px;
       font-weight: 800;
     }
-    .stat-value { margin-top: 4px; font-size: 18px; font-weight: 800; }
+
+    .stat-value {
+      margin-top: 4px;
+      font-size: 18px;
+      font-weight: 800;
+    }
 
     .actions-bar {
       position: absolute;
@@ -253,7 +303,7 @@
       flex-wrap: wrap;
       gap: 8px;
       justify-content: center;
-      width: min(92%, 860px);
+      width: min(92%, 920px);
       z-index: 25;
     }
 
@@ -269,6 +319,7 @@
       transition: transform .14s, box-shadow .14s, border-color .14s, opacity .14s;
       box-shadow: 0 8px 18px rgba(0,0,0,.24);
     }
+
     .btn:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.16); }
     .btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
     .btn.gold { background: linear-gradient(135deg, #f0ce7b, #b98a2d); color: #0b0d10; border: none; }
@@ -291,7 +342,13 @@
       gap: 16px;
       padding: 10px 12px 6px;
     }
-    .turn-info { display: flex; gap: 10px; align-items: center; }
+
+    .turn-info {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
     .tag {
       border-radius: 999px;
       padding: 5px 10px;
@@ -323,6 +380,7 @@
       overflow: hidden;
       flex: 0 0 auto;
     }
+
     .card::after {
       content: '';
       position: absolute;
@@ -331,10 +389,29 @@
       pointer-events: none;
     }
 
-    .hand-card { width: var(--hand-card-w); height: var(--hand-card-h); margin: 0 -11px; }
-    .hand-card:hover { transform: translateY(-26px) scale(1.08) rotateX(-10deg); z-index: 20; box-shadow: 0 20px 34px rgba(0,0,0,.56); }
-    .hand-card.selected { transform: translateY(-34px) scale(1.1) rotateX(-10deg); z-index: 22; box-shadow: 0 0 0 2px rgba(255,217,134,.34), 0 20px 34px rgba(0,0,0,.62); }
-    .board-card { width: var(--board-card-w); height: var(--board-card-h); }
+    .hand-card {
+      width: var(--hand-card-w);
+      height: var(--hand-card-h);
+      margin: 0 -11px;
+    }
+
+    .hand-card:hover {
+      transform: translateY(-26px) scale(1.08) rotateX(-10deg);
+      z-index: 20;
+      box-shadow: 0 20px 34px rgba(0,0,0,.56);
+    }
+
+    .hand-card.selected {
+      transform: translateY(-34px) scale(1.1) rotateX(-10deg);
+      z-index: 22;
+      box-shadow: 0 0 0 2px rgba(255,217,134,.34), 0 20px 34px rgba(0,0,0,.62);
+    }
+
+    .board-card {
+      width: var(--board-card-w);
+      height: var(--board-card-h);
+    }
+
     .board-card.tapped { transform: rotate(90deg); }
     .board-card.sick { filter: saturate(.65) brightness(.88); }
 
@@ -372,8 +449,18 @@
       gap: 10px;
       min-height: 0;
     }
-    .side-panel { padding: 14px; border-radius: 16px; }
-    .section-title { font-family: 'Cinzel', serif; color: var(--gold2); font-size: 18px; font-weight: 700; }
+
+    .side-panel {
+      padding: 14px;
+      border-radius: 16px;
+    }
+
+    .section-title {
+      font-family: 'Cinzel', serif;
+      color: var(--gold2);
+      font-size: 18px;
+      font-weight: 700;
+    }
 
     .preview-image {
       width: 100%;
@@ -384,9 +471,25 @@
       margin-top: 12px;
       box-shadow: inset 0 0 30px rgba(255,255,255,.02);
     }
-    .preview-name { margin-top: 10px; font-size: 18px; font-weight: 800; }
-    .preview-type { margin-top: 6px; font-size: 13px; color: #d0d8e0; }
-    .preview-text { margin-top: 8px; font-size: 12px; line-height: 1.45; color: var(--muted); }
+
+    .preview-name {
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .preview-type {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #d0d8e0;
+    }
+
+    .preview-text {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
 
     .log {
       display: flex;
@@ -398,6 +501,7 @@
       margin-top: 12px;
       padding-right: 2px;
     }
+
     .log-item {
       font-size: 12px;
       line-height: 1.4;
@@ -443,15 +547,65 @@
       font-size: 12px;
     }
 
-    .loading-text { font-family: 'Cinzel', serif; color: var(--gold2); font-size: 26px; animation: pulse 1.25s infinite; }
-    .result-title { font-family: 'Cinzel', serif; font-size: 28px; color: var(--gold2); }
-    .result-sub { margin: 12px 0 18px; color: #d3dce5; }
-    .footer-help { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+    .loading-text {
+      font-family: 'Cinzel', serif;
+      color: var(--gold2);
+      font-size: 26px;
+      animation: pulse 1.25s infinite;
+    }
 
-    @keyframes pulse { 0% { opacity: .48; } 50% { opacity: 1; } 100% { opacity: .48; } }
+    .result-title {
+      font-family: 'Cinzel', serif;
+      font-size: 28px;
+      color: var(--gold2);
+    }
+
+    .result-sub {
+      margin: 12px 0 18px;
+      color: #d3dce5;
+    }
+
+    .footer-help {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .damage-popup {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-weight: 800;
+      font-size: 28px;
+      pointer-events: none;
+      text-shadow: 0 0 12px rgba(0,0,0,.65);
+      animation: floatDamage .9s ease-out forwards;
+      z-index: 40;
+    }
+
+    .damage-popup.red { color: #ff6b6b; }
+    .damage-popup.green { color: #7ef29a; }
+    .damage-popup.gold { color: #ffd986; }
+
+    @keyframes floatDamage {
+      0% { opacity: 0; transform: translate(-50%, -10px) scale(.7); }
+      15% { opacity: 1; transform: translate(-50%, -24px) scale(1.08); }
+      100% { opacity: 0; transform: translate(-50%, -90px) scale(.95); }
+    }
+
+    @keyframes pulse {
+      0% { opacity: .48; }
+      50% { opacity: 1; }
+      100% { opacity: .48; }
+    }
 
     @media (max-width: 1280px) {
-      .app { grid-template-columns: 1fr; grid-template-areas: 'enemy' 'battle' 'player'; }
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-areas: 'enemy' 'battle' 'player';
+      }
       .side { display: none; }
     }
   </style>
@@ -505,7 +659,7 @@
       </div>
     </div>
 
-    <div class="battlefield">
+    <div class="battlefield" id="battlefield">
       <div class="zone enemy" id="enemy-board">
         <div class="zone-label">Enemy Battlefield</div>
       </div>
@@ -513,7 +667,7 @@
         <div class="zone-label">Your Battlefield</div>
       </div>
 
-      <div class="wheel-center">
+      <div class="wheel-center" id="wheel-center">
         <div class="intent-card panel">
           <div class="intent-title" id="turn-owner">Player Turn</div>
           <div class="intent-main" id="intent-main">Vyber akci</div>
@@ -539,6 +693,7 @@
         <button class="btn blue" onclick="queueAction('CAST')">Cast Spell</button>
         <button class="btn violet" onclick="queueAction('DRAW')">Draw</button>
         <button class="btn" onclick="queueAction('FOCUS')">Focus</button>
+        <button class="btn" onclick="toggleWheel()">Toggle Wheel</button>
         <button class="btn gold" id="spin-btn" onclick="spinWheel()">Spin</button>
         <button class="btn" onclick="endTurn()">End Turn</button>
       </div>
@@ -604,9 +759,57 @@
 
     let G = {};
     let wheelRotation = 0;
+    let audioCtx = null;
 
     function uid() {
       return (crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    }
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTickSound(freq = 950, duration = 0.03, volume = 0.02) {
+      try {
+        ensureAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.value = freq;
+        gain.gain.value = volume;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (_) {}
+    }
+
+    function playCritSound() {
+      try {
+        ensureAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(420, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(860, audioCtx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.18);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+      } catch (_) {}
+    }
+
+    function triggerShake() {
+      document.body.classList.remove('shake');
+      void document.body.offsetWidth;
+      document.body.classList.add('shake');
     }
 
     function addLog(text) {
@@ -621,11 +824,45 @@
       document.getElementById('intent-sub').textContent = subtitle;
     }
 
+    function toggleWheel() {
+      const el = document.getElementById('wheel-center');
+      el.classList.toggle('hidden');
+    }
+
+    function showPopup(targetId, text, color = 'red') {
+      const target = document.getElementById(targetId);
+      if (!target) return;
+
+      const el = document.createElement('div');
+      el.className = `damage-popup ${color}`;
+      el.textContent = text;
+      target.appendChild(el);
+      setTimeout(() => el.remove(), 900);
+    }
+
+    function showDamage(actorId, amount) {
+      if (!amount || amount <= 0) return;
+      const targetId = actorId === 'player' ? 'player-board' : 'enemy-board';
+      showPopup(targetId, `-${amount}`, 'red');
+    }
+
+    function showHeal(actorId, amount) {
+      if (!amount || amount <= 0) return;
+      const targetId = actorId === 'player' ? 'player-board' : 'enemy-board';
+      showPopup(targetId, `+${amount}`, 'green');
+    }
+
+    function showBuff(actorId, text) {
+      const targetId = actorId === 'player' ? 'player-board' : 'enemy-board';
+      showPopup(targetId, text, 'gold');
+    }
+
     function setPreview(card) {
       const img = document.getElementById('preview-image');
       const name = document.getElementById('preview-name');
       const type = document.getElementById('preview-type');
       const text = document.getElementById('preview-text');
+
       if (!card) {
         img.style.backgroundImage = 'none';
         name.textContent = 'Žádná karta';
@@ -633,9 +870,11 @@
         text.textContent = '';
         return;
       }
+
       img.style.backgroundImage = `url('${card.imageUrl || FALLBACK_IMAGE}')`;
       name.textContent = card.name;
       type.textContent = `${card.type} • MV ${card.cmc ?? 0}`;
+
       const parts = [];
       if (card.power != null && card.toughness != null) parts.push(`P/T ${card.power}/${card.toughness}`);
       if (card.tapped) parts.push('Tapped');
@@ -656,9 +895,11 @@
 
     async function fetchCardData(name) {
       if (imageCache.has(name)) return imageCache.get(name);
+
       try {
         const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
         if (!res.ok) throw new Error('Card not found');
+
         const data = await res.json();
         const card = {
           name: data.name,
@@ -672,8 +913,16 @@
         await preloadImage(card.imageUrl);
         imageCache.set(name, card);
         return card;
-      } catch (e) {
-        const fallback = { name, imageUrl: FALLBACK_IMAGE, type: 'unknown', power: null, toughness: null, cmc: 0, oracle: '' };
+      } catch (_) {
+        const fallback = {
+          name,
+          imageUrl: FALLBACK_IMAGE,
+          type: 'unknown',
+          power: null,
+          toughness: null,
+          cmc: 0,
+          oracle: '',
+        };
         imageCache.set(name, fallback);
         return fallback;
       }
@@ -740,6 +989,7 @@
       const tags = [];
       if (card.summoningSick && zoneType === 'board') tags.push('<div class="card-mark">SICK</div>');
       if (isCreature(card) && zoneType === 'board') tags.push(`<div class="pt">${card.power ?? '?'} / ${card.toughness ?? '?'}</div>`);
+
       return `<div class="${classes}" style="background-image:url('${card.imageUrl || FALLBACK_IMAGE}')" data-uid="${card.uid}">${tags.join('')}</div>`;
     }
 
@@ -749,6 +999,14 @@
         if (!card) return;
         el.onclick = () => setPreview(card);
       });
+    }
+
+    function currentActor() {
+      return G[G.activeActor];
+    }
+
+    function actorById(id) {
+      return G[id];
     }
 
     function updateHUD() {
@@ -762,6 +1020,7 @@
       document.getElementById('charges-tag').textContent = `${G.player.charges} Charges`;
       document.getElementById('stat-charges').textContent = currentActor().charges;
       document.getElementById('stat-luck').textContent = currentActor().luck;
+
       const dist = getDistribution(G.pendingAction, G.activeActor);
       document.getElementById('stat-success').textContent = `${dist.successChance}%`;
       document.getElementById('stat-crit').textContent = `${dist.critChance}%`;
@@ -774,6 +1033,7 @@
       const width = handWidth(G.player.hand.length);
       const overlap = handOverlap(G.player.hand.length);
       document.documentElement.style.setProperty('--hand-card-w', `${width}px`);
+
       handEl.innerHTML = G.player.hand.map((c, i) => createCardHTML(c, 'hand', i === G.player.selectedHandIdx)).join('');
       handEl.querySelectorAll('.hand-card').forEach((el, i) => {
         el.style.margin = `0 ${overlap}px`;
@@ -794,31 +1054,28 @@
       bindCardClicks(enemyBoard, G.enemy.board);
     }
 
-    function currentActor() {
-      return G[G.activeActor];
-    }
-
-    function actorById(id) {
-      return G[id];
-    }
-
     function removeHandCard(actor, card) {
       const idx = actor.hand.findIndex(c => c.uid === card.uid);
       if (idx >= 0) actor.hand.splice(idx, 1);
       actor.selectedHandIdx = null;
+      if (actor === G.enemy) actor.handCount = actor.hand.length;
     }
 
     async function drawCard(actorId, faceUp = true) {
       const actor = actorById(actorId);
       if (actor.deck.length <= 0) return null;
+
       const name = actor.deck.shift();
+
       if (!faceUp) {
         actor.handCount += 1;
         return name;
       }
+
       const cardData = await fetchCardData(name);
       const instance = makeInstance(cardData);
       actor.hand.push(instance);
+      if (actorId === 'enemy') actor.handCount = actor.hand.length;
       return instance;
     }
 
@@ -835,28 +1092,8 @@
       if (actorId === 'player') G.player.selectedHandIdx = null;
     }
 
-    function simpleSpellEffect(card, actorId, resultType) {
-      const actor = actorById(actorId);
-      const enemy = actorId === 'player' ? G.enemy : G.player;
-      const base = { FAIL: 0, WEAK: 2, SUCCESS: 3, CRIT: 5, CHAOS: 3 }[resultType] ?? 0;
-      const lower = card.name.toLowerCase();
-
-      if (lower === 'lightning bolt') {
-        const dmg = resultType === 'CRIT' ? 6 : resultType === 'WEAK' ? 2 : resultType === 'CHAOS' ? 3 : 3;
-        enemy.hp = Math.max(0, enemy.hp - dmg);
-        if (resultType === 'CHAOS') actor.luck += 1;
-        return `${card.name} udělil ${dmg} damage.`;
-      }
-
-      if (lower === 'shock') {
-        const dmg = resultType === 'CRIT' ? 4 : resultType === 'WEAK' ? 1 : resultType === 'CHAOS' ? 2 : 2;
-        enemy.hp = Math.max(0, enemy.hp - dmg);
-        if (resultType === 'CHAOS') actor.charges = Math.min(actor.charges + 1, 3);
-        return `${card.name} udělil ${dmg} damage.`;
-      }
-
-      enemy.hp = Math.max(0, enemy.hp - base);
-      return `${card.name} použil fallback efekt za ${base} damage.`;
+    function sideName(id) {
+      return id === 'player' ? 'Hráč' : 'Enemy';
     }
 
     function getSelectedPlayerCard() {
@@ -865,6 +1102,7 @@
 
     function getDistribution(action, actorId = G.activeActor) {
       const actor = actorById(actorId);
+
       if (!action) {
         return {
           segments: ['FAIL', 'WEAK', 'SUCCESS', 'SUCCESS', 'CRIT', 'CHAOS'],
@@ -874,6 +1112,7 @@
       }
 
       let segments;
+
       switch (action.type) {
         case 'DRAW':
           segments = ['FAIL', 'WEAK', 'SUCCESS', 'SUCCESS', 'SUCCESS', 'CRIT', 'CHAOS', 'SUCCESS'];
@@ -911,6 +1150,7 @@
 
       const successCount = segments.filter(x => x === 'SUCCESS' || x === 'WEAK' || x === 'CRIT' || x === 'CHAOS').length;
       const critCount = segments.filter(x => x === 'CRIT').length;
+
       return {
         segments,
         successChance: Math.round((successCount / segments.length) * 100),
@@ -922,6 +1162,7 @@
       const { segments } = getDistribution(G.pendingAction, G.activeActor);
       const cx = 160, cy = 160, r = 154;
       const slice = (Math.PI * 2) / segments.length;
+
       wheelCtx.clearRect(0, 0, 320, 320);
       wheelCtx.save();
       wheelCtx.translate(cx, cy);
@@ -931,6 +1172,7 @@
         const style = RESULT_STYLES[seg];
         const start = i * slice;
         const end = (i + 1) * slice;
+
         wheelCtx.beginPath();
         wheelCtx.moveTo(0, 0);
         wheelCtx.arc(0, 0, r, start, end);
@@ -972,20 +1214,23 @@
 
     function setPendingAction(action) {
       G.pendingAction = action;
+
       if (!action) {
-        setIntent('Vyber akci', 'Klikni na kartu v ruce a pak na akci.');
+        setIntent('Vyber akci', G.activeActor === 'player' ? 'Klikni na kartu v ruce a pak na akci.' : 'Enemy přemýšlí...');
       } else {
         setIntent(
           `${G.activeActor === 'player' ? 'Declare' : 'Enemy'}: ${ACTION_DEFS[action.type].name}`,
           action.card ? action.card.name : (action.note || 'Arcane Wheel rozhodne výsledek.')
         );
       }
+
       drawWheel();
       updateHUD();
     }
 
     function queueAction(type) {
       if (G.activeActor !== 'player' || G.spinning) return;
+
       const actor = G.player;
       if (actor.charges <= 0) {
         addLog('Nemáš Charges. Ukonči tah.');
@@ -993,6 +1238,7 @@
       }
 
       const selected = getSelectedPlayerCard();
+
       if (type === 'PLAY_LAND') {
         const land = selected && isLand(selected) ? selected : actor.hand.find(isLand);
         if (!land) return addLog('Nemáš zemi v ruce.');
@@ -1007,24 +1253,62 @@
 
       if (type === 'ATTACK') return setPendingAction({ type, actorId: 'player' });
       if (type === 'DRAW') return setPendingAction({ type, actorId: 'player' });
-      if (type === 'FOCUS') return setPendingAction({ type, actorId: 'player', note: 'Další spin má lepší wheel.' });
+      if (type === 'FOCUS') return setPendingAction({ type, actorId: 'player', note: 'Další spin má silnější wheel.' });
+    }
+
+    function applyDamage(targetActorId, amount) {
+      const target = actorById(targetActorId);
+      target.hp = Math.max(0, target.hp - amount);
+      showDamage(targetActorId, amount);
+    }
+
+    function applyHeal(targetActorId, amount) {
+      const target = actorById(targetActorId);
+      target.hp += amount;
+      showHeal(targetActorId, amount);
+    }
+
+    function simpleSpellEffect(card, actorId, resultType) {
+      const actor = actorById(actorId);
+      const enemyId = actorId === 'player' ? 'enemy' : 'player';
+      const lower = card.name.toLowerCase();
+
+      if (lower === 'lightning bolt') {
+        const dmg = resultType === 'CRIT' ? 6 : resultType === 'WEAK' ? 2 : 3;
+        applyDamage(enemyId, dmg);
+        if (resultType === 'CHAOS') actor.luck = Math.min(actor.luck + 1, 3);
+        return `${card.name} udělil ${dmg} damage.`;
+      }
+
+      if (lower === 'shock') {
+        const dmg = resultType === 'CRIT' ? 4 : resultType === 'WEAK' ? 1 : 2;
+        applyDamage(enemyId, dmg);
+        if (resultType === 'CHAOS') actor.charges = Math.min(actor.charges + 1, 3);
+        return `${card.name} udělil ${dmg} damage.`;
+      }
+
+      const base = { WEAK: 2, SUCCESS: 3, CRIT: 5, CHAOS: 3 }[resultType] ?? 0;
+      applyDamage(enemyId, base);
+      return `${card.name} použil fallback efekt za ${base} damage.`;
     }
 
     async function resolveAction(action, resultType) {
       const actor = actorById(action.actorId);
-      const enemy = action.actorId === 'player' ? G.enemy : G.player;
+      const enemyId = action.actorId === 'player' ? 'enemy' : 'player';
       let msg = '';
 
       if (resultType === 'FAIL') {
         actor.luck = Math.min(actor.luck + 1, 3);
         actor.charges = Math.max(actor.charges - 1, 0);
+
         if (action.type === 'CAST' && action.card?.name.toLowerCase() === 'eidolon of the great revel') {
-          actor.hp = Math.max(0, actor.hp - 2);
-          enemy.hp = Math.max(0, enemy.hp - 2);
+          applyDamage(action.actorId, 2);
+          applyDamage(enemyId, 2);
           msg = `${sideName(action.actorId)} failnul cast a Eidolon pálí oba za 2.`;
         } else {
           msg = `${sideName(action.actorId)} failnul ${ACTION_DEFS[action.type].name}. Luck +1.`;
         }
+
         actor.focused = false;
         addLog(msg);
         return;
@@ -1034,25 +1318,27 @@
         actor.charges = Math.max(actor.charges - 1, 0);
         actor.focused = true;
         actor.luck = Math.max(actor.luck - 1, 0);
-        msg = `${sideName(action.actorId)} se soustředí. Další spin má silnější wheel.`;
-        addLog(msg);
+        showBuff(action.actorId, 'FOCUS');
+        addLog(`${sideName(action.actorId)} se soustředí. Další spin má silnější wheel.`);
         return;
       }
 
       if (action.type === 'DRAW') {
         actor.charges = Math.max(actor.charges - 1, 0);
-        const draws = resultType === 'CRIT' ? 2 : resultType === 'WEAK' ? 1 : resultType === 'CHAOS' ? 1 : 1;
+        const draws = resultType === 'CRIT' ? 2 : 1;
         let names = [];
+
         for (let i = 0; i < draws; i++) {
-          const card = await drawCard(action.actorId, action.actorId === 'player');
+          const card = await drawCard(action.actorId, true);
           if (!card) break;
-          names.push(action.actorId === 'player' ? card.name : 'card');
+          names.push(card.name);
         }
+
         if (resultType === 'CHAOS') actor.luck = Math.min(actor.luck + 1, 3);
         actor.luck = Math.max(actor.luck - 1, 0);
         actor.focused = false;
-        msg = `${sideName(action.actorId)} lízl ${draws} ${draws > 1 ? 'karty' : 'kartu'}${names.length && action.actorId === 'player' ? `: ${names.join(', ')}` : '.'}`;
-        addLog(msg);
+        showBuff(action.actorId, draws > 1 ? '+2 DRAW' : '+1 DRAW');
+        addLog(`${sideName(action.actorId)} lízl ${draws} ${draws > 1 ? 'karty' : 'kartu'}${names.length && action.actorId === 'player' ? `: ${names.join(', ')}` : '.'}`);
         return;
       }
 
@@ -1062,6 +1348,7 @@
           addLog(`${sideName(action.actorId)} už tento tah hrál zemi.`);
           return;
         }
+
         const land = action.card;
         removeHandCard(actor, land);
         actor.board.push({ ...land, tapped: false, summoningSick: false });
@@ -1071,8 +1358,8 @@
         actor.luck = Math.max(actor.luck - 1, 0);
         actor.focused = false;
         if (resultType === 'CRIT') actor.charges = Math.min(actor.charges + 1, 3);
-        msg = `${sideName(action.actorId)} položil ${land.name}. Mana ${actor.mana}/${actor.maxMana}.`;
-        addLog(msg);
+        showBuff(action.actorId, '+MANA');
+        addLog(`${sideName(action.actorId)} položil ${land.name}. Mana ${actor.mana}/${actor.maxMana}.`);
         return;
       }
 
@@ -1098,13 +1385,10 @@
           msg = `${sideName(action.actorId)} seslal ${card.name}${resultType === 'WEAK' ? ' tapped.' : '.'}`;
           if (resultType === 'CRIT') actor.charges = Math.min(actor.charges + 1, 3);
           if (resultType === 'CHAOS') actor.luck = Math.min(actor.luck + 1, 3);
+          showBuff(action.actorId, 'CAST');
         } else {
           msg = `${sideName(action.actorId)} ${simpleSpellEffect(card, action.actorId, resultType)}`;
           if (resultType === 'CRIT') actor.charges = Math.min(actor.charges + 1, 3);
-        }
-
-        if (card.name.toLowerCase() === 'monastery swiftspear') {
-          // no on cast bonus here, handled through attacks simply
         }
 
         actor.luck = Math.max(actor.luck - 1, 0);
@@ -1116,6 +1400,7 @@
       if (action.type === 'ATTACK') {
         actor.charges = Math.max(actor.charges - 1, 0);
         const attackers = actor.board.filter(c => isCreature(c) && !c.tapped && !c.summoningSick);
+
         if (!attackers.length) {
           actor.luck = Math.min(actor.luck + 1, 3);
           actor.focused = false;
@@ -1136,32 +1421,34 @@
         }
 
         if (actor.board.some(c => c.name.toLowerCase() === 'goblin guide') && resultType === 'CRIT') {
-          const bonus = await drawCard(action.actorId, action.actorId === 'player');
+          const bonus = await drawCard(action.actorId, true);
           if (bonus && action.actorId === 'player') setPreview(bonus);
         }
 
-        enemy.hp = Math.max(0, enemy.hp - finalDamage);
+        applyDamage(enemyId, finalDamage);
         actor.luck = Math.max(actor.luck - 1, 0);
         actor.focused = false;
         addLog(`${sideName(action.actorId)} útočí za ${finalDamage}${resultType === 'CRIT' ? ' (CRIT)' : resultType === 'WEAK' ? ' (WEAK)' : ''}.`);
       }
     }
 
-    function sideName(id) {
-      return id === 'player' ? 'Hráč' : 'Enemy';
-    }
-
     async function spinWheel() {
       if (G.spinning || !G.pendingAction) return;
+
       const actor = currentActor();
       if (actor.charges <= 0) {
         addLog(`${sideName(G.activeActor)} nemá Charges.`);
         return;
       }
 
+      ensureAudio();
       G.spinning = true;
       document.getElementById('spin-btn').disabled = true;
-      setIntent(`Spinning: ${ACTION_DEFS[G.pendingAction.type].name}`, G.pendingAction.card ? G.pendingAction.card.name : 'Arcane Wheel se rozhoduje...');
+
+      setIntent(
+        `Spinning: ${ACTION_DEFS[G.pendingAction.type].name}`,
+        G.pendingAction.card ? G.pendingAction.card.name : 'Arcane Wheel se rozhoduje...'
+      );
 
       const { segments } = getDistribution(G.pendingAction, G.activeActor);
       const slice = (Math.PI * 2) / segments.length;
@@ -1174,12 +1461,22 @@
       const duration = 2400;
       const start = performance.now();
 
+      let lastTickBucket = -1;
+
       await new Promise(resolve => {
         function animate(now) {
           const p = Math.min((now - start) / duration, 1);
           const eased = 1 - Math.pow(1 - p, 3);
           wheelRotation = startRotation + (finalRotation - startRotation) * eased;
           drawWheel();
+
+          const bucket = Math.floor(p * 20);
+          if (bucket !== lastTickBucket && p < 0.96) {
+            lastTickBucket = bucket;
+            const freq = 700 + (1 - p) * 300;
+            playTickSound(freq, 0.02 + (1 - p) * 0.01, 0.018);
+          }
+
           if (p < 1) requestAnimationFrame(animate);
           else resolve();
         }
@@ -1188,10 +1485,17 @@
 
       const resultType = segments[chosenIndex];
       addLog(`${sideName(G.activeActor)} vytočil ${RESULT_STYLES[resultType].text}.`);
+
+      if (resultType === 'CRIT' || resultType === 'CHAOS') {
+        triggerShake();
+        playCritSound();
+      }
+
       await resolveAction(G.pendingAction, resultType);
       G.pendingAction = null;
       G.spinning = false;
       document.getElementById('spin-btn').disabled = false;
+
       updateHUD();
       drawWheel();
       setIntent('Vyber akci', G.activeActor === 'player' ? 'Klikni na kartu v ruce a pak na akci.' : 'Enemy přemýšlí...');
@@ -1205,6 +1509,7 @@
     async function enemyTurnStep() {
       if (checkGameOver()) return;
       if (G.activeActor !== 'enemy' || G.spinning) return;
+
       const enemy = G.enemy;
 
       if (enemy.charges <= 0) {
@@ -1217,6 +1522,7 @@
       const attackers = enemy.board.filter(c => isCreature(c) && !c.tapped && !c.summoningSick);
 
       let action = null;
+
       if (G.player.hp <= 6 && attackers.length) action = { type: 'ATTACK', actorId: 'enemy' };
       else if (playableSpell) action = { type: 'CAST', actorId: 'enemy', card: playableSpell };
       else if (playableLand) action = { type: 'PLAY_LAND', actorId: 'enemy', card: playableLand };
@@ -1245,6 +1551,7 @@
 
     async function endTurn() {
       if (G.spinning || G.activeActor !== 'player') return;
+
       addLog('Ukončil jsi tah.');
       G.activeActor = 'enemy';
       startOfTurn('enemy');
@@ -1285,11 +1592,14 @@
         return;
       }
 
+      ensureAudio();
+
       document.getElementById('setup').style.display = 'none';
       document.getElementById('end-overlay').style.display = 'none';
       document.getElementById('loading').style.display = 'flex';
 
       shuffle(deck);
+
       const playerOpeningNames = deck.slice(0, 5);
       const enemyOpeningNames = deck.slice(5, 10);
       const playerDeck = deck.slice(10);
@@ -1309,7 +1619,7 @@
           deck: [...playerDeck],
           hand: playerOpeningCards.map(makeInstance),
           board: [],
-          handCount: 0,
+          handCount: playerOpeningCards.length,
           mana: 0,
           maxMana: 0,
           charges: 3,
@@ -1355,6 +1665,7 @@
       wheelRotation = 0;
       drawWheel();
       setPreview(null);
+      document.getElementById('wheel-center').classList.remove('hidden');
     }
 
     drawWheel();
