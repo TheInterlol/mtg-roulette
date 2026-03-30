@@ -1,1674 +1,1462 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MTG Roulette: Arcane Run</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;600;700;800&display=swap');
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #07090d;
-      --panel: rgba(18,24,33,0.94);
-      --gold: #d5b35f;
-      --gold2: #ffd986;
-      --red: #ef5350;
-      --green: #63d18b;
-      --blue: #67a6ff;
-      --violet: #bf8bff;
-      --text: #f2f5f8;
-      --muted: #95a1af;
-      --shadow: 0 14px 40px rgba(0,0,0,0.45);
-      --hand-card-w: 112px;
-      --hand-card-h: 156px;
-      --board-card-w: 88px;
-      --board-card-h: 123px;
-    }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at top, rgba(70, 88, 122, 0.18), transparent 38%),
-        radial-gradient(circle at bottom, rgba(115, 52, 143, 0.16), transparent 34%),
-        linear-gradient(180deg, #080b11, #05070a 72%);
-      height: 100vh;
-      overflow: hidden;
-      user-select: none;
-    }
-
-    body.shake {
-      animation: shake .28s linear;
-    }
-
-    @keyframes shake {
-      0% { transform: translate(0, 0); }
-      20% { transform: translate(-4px, 2px); }
-      40% { transform: translate(4px, -2px); }
-      60% { transform: translate(-3px, -2px); }
-      80% { transform: translate(3px, 2px); }
-      100% { transform: translate(0, 0); }
-    }
-
-    .app {
-      height: 100vh;
-      display: grid;
-      grid-template-columns: 1fr 420px;
-      grid-template-rows: auto 1fr auto;
-      grid-template-areas:
-        'enemy side'
-        'battle side'
-        'player side';
-      perspective: 2000px;
-    }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid rgba(255,255,255,0.06);
-      backdrop-filter: blur(8px);
-      box-shadow: var(--shadow);
-    }
-
-    .enemy-area {
-      grid-area: enemy;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 20px;
-      background: linear-gradient(180deg, rgba(0,0,0,0.7), transparent);
-      z-index: 10;
-    }
-
-    .enemy-meta, .player-meta {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: radial-gradient(circle at 30% 30%, #2b3551, #10141c 70%);
-      display: grid;
-      place-items: center;
-      font-weight: 800;
-      color: var(--gold2);
-      box-shadow: inset 0 0 24px rgba(255,255,255,0.04);
-    }
-
-    .name { font-weight: 800; letter-spacing: .3px; }
-    .sub { font-size: 12px; color: var(--muted); }
-
-    .hp {
-      font-family: 'Cinzel', serif;
-      font-size: 30px;
-      font-weight: 700;
-      min-width: 48px;
-      text-align: right;
-    }
-
-    .hp.enemy { color: var(--red); text-shadow: 0 0 14px rgba(239,83,80,.32); }
-    .hp.player { color: var(--green); text-shadow: 0 0 14px rgba(99,209,139,.32); }
-
-    .pips { display: flex; gap: 4px; }
-
-    .pip {
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      border: 1px solid #566272;
-      background: #0a0d11;
-    }
-
-    .pip.full {
-      background: var(--gold);
-      border-color: var(--gold2);
-      box-shadow: 0 0 8px rgba(213,179,95,.55);
-    }
-
-    .enemy-hand { display: flex; align-items: center; }
-
-    .card-back {
-      width: 42px;
-      height: 58px;
-      border-radius: 5px;
-      border: 1px solid rgba(255,255,255,.16);
-      background: linear-gradient(135deg, #1f2531, #10141b 55%, #273348);
-      margin-right: -24px;
-      box-shadow: 0 6px 18px rgba(0,0,0,.34);
-    }
-
-    .battlefield {
-      grid-area: battle;
-      position: relative;
-      display: grid;
-      grid-template-rows: 1fr 1fr;
-      background:
-        radial-gradient(circle at center, rgba(32,45,68,.86), transparent 48%),
-        linear-gradient(180deg, rgba(14,20,29,.92), rgba(8,12,18,.98));
-      overflow: hidden;
-    }
-
-    .zone {
-      padding: 26px 26px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      position: relative;
-    }
-
-    .zone.enemy { border-bottom: 1px solid rgba(255,255,255,.04); }
-
-    .zone-label {
-      position: absolute;
-      top: 10px;
-      left: 14px;
-      font-size: 11px;
-      letter-spacing: 1.1px;
-      color: rgba(255,255,255,.42);
-      text-transform: uppercase;
-      font-weight: 700;
-    }
-
-    .wheel-center {
-      position: absolute;
-      left: 50%;
-      top: 61%;
-      transform: translate(-50%, -50%);
-      z-index: 20;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      pointer-events: none;
-      transition: opacity .2s ease, transform .2s ease;
-    }
-
-    .wheel-center.hidden {
-      opacity: 0;
-      pointer-events: none;
-      transform: translate(-50%, -50%) scale(.96);
-    }
-
-    .wheel-center * { pointer-events: auto; }
-
-    .intent-card {
-      min-width: 340px;
-      text-align: center;
-      padding: 12px 14px;
-      border-radius: 14px;
-      background: linear-gradient(180deg, rgba(18,24,33,.95), rgba(11,16,24,.95));
-      border: 1px solid rgba(255,255,255,.08);
-      box-shadow: var(--shadow);
-    }
-
-    .intent-title {
-      font-size: 12px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-weight: 800;
-    }
-
-    .intent-main {
-      margin-top: 5px;
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--gold2);
-    }
-
-    .intent-sub {
-      margin-top: 5px;
-      min-height: 18px;
-      font-size: 12px;
-      color: #c5d0db;
-    }
-
-    .wheel-wrap {
-      position: relative;
-      width: 320px;
-      height: 320px;
-      display: grid;
-      place-items: center;
-      filter: drop-shadow(0 16px 26px rgba(0,0,0,.55));
-    }
-
-    .wheel-pointer {
-      position: absolute;
-      top: -8px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 16px solid transparent;
-      border-right: 16px solid transparent;
-      border-top: 28px solid var(--gold2);
-      z-index: 3;
-      filter: drop-shadow(0 0 10px rgba(255,217,134,.45));
-    }
-
-    #wheel {
-      width: 320px;
-      height: 320px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,.14);
-      background: #0b1018;
-    }
-
-    .wheel-stats {
-      width: 340px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      background: linear-gradient(180deg, rgba(18,24,33,.95), rgba(11,16,24,.95));
-      border: 1px solid rgba(255,255,255,.08);
-      box-shadow: var(--shadow);
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    .stat-box {
-      border-radius: 10px;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.04);
-      padding: 8px 10px;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .9px;
-      font-weight: 800;
-    }
-
-    .stat-value {
-      margin-top: 4px;
-      font-size: 18px;
-      font-weight: 800;
-    }
-
-    .actions-bar {
-      position: absolute;
-      left: 50%;
-      bottom: 8px;
-      transform: translateX(-50%);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-      width: min(92%, 920px);
-      z-index: 25;
-    }
-
-    .btn {
-      border: 1px solid rgba(255,255,255,.08);
-      background: linear-gradient(180deg, rgba(26,33,45,.97), rgba(10,14,20,.97));
-      color: var(--text);
-      padding: 10px 14px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 800;
-      letter-spacing: .2px;
-      transition: transform .14s, box-shadow .14s, border-color .14s, opacity .14s;
-      box-shadow: 0 8px 18px rgba(0,0,0,.24);
-    }
-
-    .btn:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.16); }
-    .btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
-    .btn.gold { background: linear-gradient(135deg, #f0ce7b, #b98a2d); color: #0b0d10; border: none; }
-    .btn.red { box-shadow: inset 0 0 0 1px rgba(239,83,80,.18); }
-    .btn.blue { box-shadow: inset 0 0 0 1px rgba(103,166,255,.18); }
-    .btn.green { box-shadow: inset 0 0 0 1px rgba(99,209,139,.18); }
-    .btn.violet { box-shadow: inset 0 0 0 1px rgba(191,139,255,.18); }
-
-    .player-area {
-      grid-area: player;
-      padding-bottom: 16px;
-      background: linear-gradient(0deg, rgba(0,0,0,.82), transparent);
-      z-index: 10;
-    }
-
-    .player-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      padding: 10px 12px 6px;
-    }
-
-    .turn-info {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .tag {
-      border-radius: 999px;
-      padding: 5px 10px;
-      font-size: 12px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.06);
-      color: #d7dfe7;
-      font-weight: 700;
-    }
-
-    .hand {
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-      height: calc(var(--hand-card-h) + 44px);
-      transform: rotateX(16deg);
-      transform-style: preserve-3d;
-      padding: 0 18px;
-    }
-
-    .card {
-      position: relative;
-      border-radius: 8px;
-      background: #111 center/cover no-repeat;
-      box-shadow: 0 6px 18px rgba(0,0,0,.45);
-      cursor: pointer;
-      transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
-      border: 1px solid rgba(255,255,255,.08);
-      overflow: hidden;
-      flex: 0 0 auto;
-    }
-
-    .card::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(255,255,255,.12), transparent 18%, transparent 82%, rgba(0,0,0,.18));
-      pointer-events: none;
-    }
-
-    .hand-card {
-      width: var(--hand-card-w);
-      height: var(--hand-card-h);
-      margin: 0 -11px;
-    }
-
-    .hand-card:hover {
-      transform: translateY(-26px) scale(1.08) rotateX(-10deg);
-      z-index: 20;
-      box-shadow: 0 20px 34px rgba(0,0,0,.56);
-    }
-
-    .hand-card.selected {
-      transform: translateY(-34px) scale(1.1) rotateX(-10deg);
-      z-index: 22;
-      box-shadow: 0 0 0 2px rgba(255,217,134,.34), 0 20px 34px rgba(0,0,0,.62);
-    }
-
-    .board-card {
-      width: var(--board-card-w);
-      height: var(--board-card-h);
-    }
-
-    .board-card.tapped { transform: rotate(90deg); }
-    .board-card.sick { filter: saturate(.65) brightness(.88); }
-
-    .card-mark {
-      position: absolute;
-      left: 5px;
-      top: 5px;
-      font-size: 10px;
-      font-weight: 800;
-      padding: 3px 5px;
-      border-radius: 6px;
-      background: rgba(0,0,0,.72);
-      border: 1px solid rgba(255,255,255,.08);
-      color: #f7f7f7;
-    }
-
-    .pt {
-      position: absolute;
-      right: 5px;
-      bottom: 5px;
-      font-family: 'Cinzel', serif;
-      font-size: 15px;
-      font-weight: 700;
-      padding: 2px 5px;
-      border-radius: 6px;
-      background: rgba(0,0,0,.78);
-      border: 1px solid rgba(255,255,255,.08);
-    }
-
-    .side {
-      grid-area: side;
-      padding: 12px 12px 12px 0;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      min-height: 0;
-    }
-
-    .side-panel {
-      padding: 14px;
-      border-radius: 16px;
-    }
-
-    .section-title {
-      font-family: 'Cinzel', serif;
-      color: var(--gold2);
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .preview-image {
-      width: 100%;
-      aspect-ratio: 5 / 7;
-      border-radius: 12px;
-      background: #0a0d12 center/cover no-repeat;
-      border: 1px solid rgba(255,255,255,.08);
-      margin-top: 12px;
-      box-shadow: inset 0 0 30px rgba(255,255,255,.02);
-    }
-
-    .preview-name {
-      margin-top: 10px;
-      font-size: 18px;
-      font-weight: 800;
-    }
-
-    .preview-type {
-      margin-top: 6px;
-      font-size: 13px;
-      color: #d0d8e0;
-    }
-
-    .preview-text {
-      margin-top: 8px;
-      font-size: 12px;
-      line-height: 1.45;
-      color: var(--muted);
-    }
-
-    .log {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      overflow: auto;
-      min-height: 0;
-      max-height: 100%;
-      margin-top: 12px;
-      padding-right: 2px;
-    }
-
-    .log-item {
-      font-size: 12px;
-      line-height: 1.4;
-      padding: 8px 9px;
-      border-radius: 10px;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.05);
-      color: #dbe3ea;
-    }
-
-    .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.84);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-
-    .modal {
-      width: min(92vw, 540px);
-      padding: 28px;
-      border-radius: 18px;
-      background: linear-gradient(180deg, rgba(20,27,37,.98), rgba(10,14,20,.98));
-      border: 1px solid rgba(255,255,255,.08);
-      box-shadow: var(--shadow);
-      text-align: center;
-    }
-
-    textarea {
-      width: 100%;
-      height: 190px;
-      margin-top: 16px;
-      margin-bottom: 14px;
-      resize: none;
-      padding: 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.08);
-      background: #090c12;
-      color: #d4dce4;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12px;
-    }
-
-    .loading-text {
-      font-family: 'Cinzel', serif;
-      color: var(--gold2);
-      font-size: 26px;
-      animation: pulse 1.25s infinite;
-    }
-
-    .result-title {
-      font-family: 'Cinzel', serif;
-      font-size: 28px;
-      color: var(--gold2);
-    }
-
-    .result-sub {
-      margin: 12px 0 18px;
-      color: #d3dce5;
-    }
-
-    .footer-help {
-      margin-top: 10px;
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.45;
-    }
-
-    .damage-popup {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      font-weight: 800;
-      font-size: 28px;
-      pointer-events: none;
-      text-shadow: 0 0 12px rgba(0,0,0,.65);
-      animation: floatDamage .9s ease-out forwards;
-      z-index: 40;
-    }
-
-    .damage-popup.red { color: #ff6b6b; }
-    .damage-popup.green { color: #7ef29a; }
-    .damage-popup.gold { color: #ffd986; }
-
-    @keyframes floatDamage {
-      0% { opacity: 0; transform: translate(-50%, -10px) scale(.7); }
-      15% { opacity: 1; transform: translate(-50%, -24px) scale(1.08); }
-      100% { opacity: 0; transform: translate(-50%, -90px) scale(.95); }
-    }
-
-    @keyframes pulse {
-      0% { opacity: .48; }
-      50% { opacity: 1; }
-      100% { opacity: .48; }
-    }
-
-    @media (max-width: 1280px) {
-      .app {
-        grid-template-columns: 1fr;
-        grid-template-areas: 'enemy' 'battle' 'player';
-      }
-      .side { display: none; }
-    }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MTG Roulette: Arcane Run</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#07090d;--panel:rgba(18,24,33,0.96);
+  --gold:#d5b35f;--gold2:#ffd986;
+  --red:#ef5350;--green:#63d18b;--blue:#67a6ff;--violet:#bf8bff;
+  --text:#f2f5f8;--muted:#95a1af;
+  --shadow:0 14px 40px rgba(0,0,0,0.55);
+  --hcw:104px;--hch:145px;--bcw:92px;--bch:128px;
+}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:'Inter',sans-serif;color:var(--text);
+  background:linear-gradient(180deg,#080b11,#05070a);
+  user-select:none;
+}
+body.shake{animation:shake .3s linear;}
+@keyframes shake{
+  0%{transform:translate(0,0);}
+  20%{transform:translate(-5px,2px);}
+  40%{transform:translate(5px,-2px);}
+  60%{transform:translate(-3px,-2px);}
+  80%{transform:translate(3px,2px);}
+  100%{transform:translate(0,0);}
+}
+
+/* LAYOUT */
+.app{
+  height:100vh;display:grid;
+  grid-template-columns:1fr 340px;
+  grid-template-rows:56px 1fr 180px;
+  grid-template-areas:'ebar side' 'battle side' 'parea side';
+}
+
+/* ENEMY BAR */
+.enemy-bar{
+  grid-area:ebar;display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;background:linear-gradient(180deg,rgba(0,0,0,.8),transparent);z-index:10;gap:10px;
+}
+.cmb{display:flex;align-items:center;gap:10px;}
+.avatar{
+  width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.12);
+  background:radial-gradient(circle at 30% 30%,#2b3551,#10141c);
+  display:grid;place-items:center;font-weight:800;color:var(--gold2);font-size:13px;flex-shrink:0;
+}
+.cname{font-weight:800;font-size:14px;}
+.csub{font-size:11px;color:var(--muted);}
+.hp-block{text-align:center;}
+.hp{
+  font-family:'Cinzel',serif;font-size:28px;font-weight:700;line-height:1;
+}
+.hp.ep{color:var(--red);text-shadow:0 0 14px rgba(239,83,80,.3);}
+.hp.pp{color:var(--green);text-shadow:0 0 14px rgba(99,209,139,.3);}
+.hp-lbl{font-size:9px;color:var(--muted);letter-spacing:.5px;}
+.mana-row{display:flex;gap:3px;flex-wrap:wrap;max-width:110px;}
+.pip{
+  width:9px;height:9px;border-radius:50%;border:1px solid #3a4452;background:#0a0d11;transition:all .25s;
+}
+.pip.full{
+  background:var(--gold);border-color:var(--gold2);box-shadow:0 0 6px rgba(213,179,95,.5);
+}
+.pip.spent{background:#14181f;border-color:#232a35;}
+.ehand{display:flex;align-items:center;}
+.cb{
+  width:34px;height:48px;border-radius:4px;border:1px solid rgba(255,255,255,.12);
+  background:linear-gradient(135deg,#1f2531,#10141b 55%,#273348);margin-right:-18px;
+  box-shadow:0 4px 12px rgba(0,0,0,.4);
+}
+
+/* BATTLEFIELD */
+.battlefield{
+  grid-area:battle;position:relative;display:grid;grid-template-rows:1fr 1fr;
+  background:
+    radial-gradient(circle at center,rgba(26,38,56,.85),transparent 52%),
+    linear-gradient(180deg,rgba(10,16,24,.96),rgba(6,9,14,.98));
+  overflow:hidden;
+}
+.zone{
+  padding:16px 20px 14px;display:flex;align-items:center;justify-content:center;
+  gap:8px;flex-wrap:wrap;position:relative;min-height:0;
+}
+.zone.ez{border-bottom:1px solid rgba(255,255,255,.04);}
+.zlbl{
+  position:absolute;top:6px;left:10px;font-size:10px;letter-spacing:1.1px;
+  color:rgba(255,255,255,.3);text-transform:uppercase;font-weight:700;
+}
+.zempty{font-size:12px;color:rgba(255,255,255,.13);font-style:italic;pointer-events:none;}
+.fdiv{
+  position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:1px;
+  background:linear-gradient(90deg,transparent,rgba(201,168,76,.2),rgba(201,168,76,.35),rgba(201,168,76,.2),transparent);
+  pointer-events:none;z-index:5;
+}
+
+/* WHEEL OVERLAY */
+.wov{
+  position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;z-index:20;pointer-events:none;transition:opacity .18s ease, transform .18s ease;
+}
+.wov.hidden{
+  opacity:0;pointer-events:none;transform:translate(-50%,-46%) scale(.96);
+}
+.wov *{pointer-events:auto;}
+.intent-card{
+  min-width:300px;text-align:center;padding:9px 14px;border-radius:12px;
+  background:rgba(14,20,30,.97);border:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow);
+}
+.ilbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:800;}
+.imain{margin-top:3px;font-size:17px;font-weight:800;color:var(--gold2);}
+.isub{margin-top:3px;font-size:11px;color:#b0bec8;min-height:14px;}
+.ichaos{margin-top:2px;font-size:10px;color:rgba(191,139,255,.65);min-height:12px;}
+.wwrap{position:relative;width:280px;height:280px;display:grid;place-items:center;}
+.wwrap.bounce{animation:pointerBounce .28s ease;}
+@keyframes pointerBounce{
+  0%{transform:translateY(0);}
+  45%{transform:translateY(-4px);}
+  100%{transform:translateY(0);}
+}
+.wptr{
+  position:absolute;top:-5px;left:50%;transform:translateX(-50%);
+  width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;
+  border-top:24px solid var(--gold2);z-index:3;filter:drop-shadow(0 0 7px rgba(255,217,134,.5));
+}
+#wheel{
+  width:280px;height:280px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.1);background:#0b1018;
+  box-shadow:0 0 30px rgba(255,217,134,.06);
+}
+.wstats{
+  width:300px;padding:8px 10px;border-radius:12px;
+  background:rgba(14,20,30,.97);border:1px solid rgba(255,255,255,.08);
+  box-shadow:var(--shadow);display:grid;grid-template-columns:repeat(4,1fr);gap:6px;
+}
+.sbox{
+  border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.04);padding:5px 7px;
+}
+.slbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:800;}
+.sval{margin-top:2px;font-size:15px;font-weight:800;}
+
+/* ACTIONS BAR */
+.abar{
+  position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+  display:flex;flex-wrap:wrap;gap:5px;justify-content:center;
+  width:min(98%,860px);z-index:25;
+}
+.phases{
+  display:flex;gap:3px;align-items:center;width:100%;justify-content:center;margin-bottom:2px;
+}
+.ph{
+  font-size:9px;font-weight:800;letter-spacing:.7px;padding:2px 7px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.06);color:rgba(255,255,255,.25);
+  background:rgba(255,255,255,.03);transition:all .2s;
+}
+.ph.active{background:rgba(213,179,95,.15);border-color:rgba(213,179,95,.4);color:var(--gold2);}
+.ph.done{background:rgba(99,209,139,.05);border-color:rgba(99,209,139,.18);color:rgba(99,209,139,.5);}
+.btn{
+  border:1px solid rgba(255,255,255,.08);
+  background:linear-gradient(180deg,rgba(26,33,45,.97),rgba(10,14,20,.97));
+  color:var(--text);padding:8px 11px;border-radius:9px;cursor:pointer;
+  font-weight:800;font-size:12px;letter-spacing:.1px;white-space:nowrap;
+  transition:transform .12s,box-shadow .12s,border-color .12s,opacity .12s;
+  box-shadow:0 4px 12px rgba(0,0,0,.3);
+}
+.btn:hover:not(:disabled){transform:translateY(-2px);border-color:rgba(255,255,255,.16);}
+.btn:active:not(:disabled){transform:translateY(0);}
+.btn:disabled{opacity:.3;cursor:not-allowed;transform:none;}
+.btn.gold{
+  background:linear-gradient(135deg,#f0ce7b,#b98a2d);color:#0b0d10;border:none;
+  box-shadow:0 5px 18px rgba(213,179,95,.28);
+}
+.btn.gold:hover:not(:disabled){box-shadow:0 7px 24px rgba(213,179,95,.42);}
+.btn.red{border-color:rgba(239,83,80,.22);color:#ff8a88;}
+.btn.blue{border-color:rgba(103,166,255,.22);color:#90bfff;}
+.btn.grn{border-color:rgba(99,209,139,.22);color:#8fe8a8;}
+.btn.vio{border-color:rgba(191,139,255,.22);color:#d0aaff;}
+.btn.aa{box-shadow:0 0 0 2px var(--gold2),0 6px 20px rgba(255,217,134,.28)!important;transform:translateY(-2px);}
+
+/* PLAYER AREA */
+.parea{
+  grid-area:parea;background:linear-gradient(0deg,rgba(0,0,0,.88),transparent);z-index:10;
+  display:flex;flex-direction:column;
+}
+.ptop{
+  display:flex;align-items:center;justify-content:space-between;padding:6px 14px 3px;flex-shrink:0;gap:8px;
+}
+.pleft{display:flex;align-items:center;gap:12px;}
+.pright{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.tag{
+  border-radius:999px;padding:3px 9px;font-size:11px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);
+  color:#c5d2de;font-weight:700;white-space:nowrap;
+}
+.tag.ct{color:var(--gold);}
+.hand{
+  display:flex;justify-content:center;align-items:flex-end;
+  flex:1;padding:0 14px 4px;overflow:visible;perspective:1200px;
+}
+
+/* CARDS */
+.card{
+  position:relative;border-radius:7px;
+  background:#111 center/cover no-repeat;
+  box-shadow:0 5px 16px rgba(0,0,0,.5);cursor:pointer;
+  transition:transform .16s ease,box-shadow .16s ease,filter .16s ease;
+  border:1px solid rgba(255,255,255,.09);overflow:hidden;flex-shrink:0;
+}
+.card::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.09),transparent 20%,transparent 78%,rgba(0,0,0,.22));
+  pointer-events:none;
+}
+/* fallback color bands when no image */
+.card.cred{background-color:#3a0808;}
+.card.cblu{background-color:#08203a;}
+.card.cgrn{background-color:#083a14;}
+.card.cwht{background-color:#2a2810;}
+.card.cblk{background-color:#160820;}
+.card.cgry{background-color:#141820;}
+
+.hc{
+  width:var(--hcw);height:var(--hch);margin:0 -9px;transform-origin:bottom center;
+}
+.hc:hover{
+  z-index:30;box-shadow:0 20px 32px rgba(0,0,0,.6)!important;
+}
+.hc.sel{
+  z-index:32;
+  box-shadow:0 0 0 2px rgba(255,217,134,.55),0 20px 32px rgba(0,0,0,.65)!important;
+}
+.hc.pg{box-shadow:0 0 0 1px rgba(99,209,139,.45),0 5px 14px rgba(0,0,0,.5);}
+
+.bc{width:var(--bcw);height:var(--bch);}
+.bc:hover{
+  transform:translateY(-10px) scale(1.16)!important;z-index:28;
+  box-shadow:0 18px 28px rgba(0,0,0,.6);
+}
+.bc.locked{
+  transform:translateY(-12px) scale(1.17)!important;z-index:29;
+  box-shadow:0 0 0 2px rgba(255,217,134,.45),0 18px 30px rgba(0,0,0,.65);
+}
+.bc.tapped{transform:rotate(88deg);margin:0 20px;}
+.bc.tapped:hover{transform:rotate(88deg) scale(1.05)!important;}
+.bc.sick{filter:saturate(.5) brightness(.8);}
+.bc.atk{box-shadow:0 0 0 2px #ef5350,0 6px 18px rgba(239,83,80,.4);}
+
+.cmark{
+  position:absolute;left:3px;top:3px;font-size:8px;font-weight:800;
+  padding:2px 4px;border-radius:4px;background:rgba(0,0,0,.8);
+  border:1px solid rgba(255,255,255,.1);color:#eee;letter-spacing:.2px;
+}
+.cmark.sk{background:rgba(70,30,0,.9);color:#ffa040;}
+.pt{
+  position:absolute;right:3px;bottom:3px;font-family:'Cinzel',serif;
+  font-size:13px;font-weight:700;padding:1px 4px;border-radius:4px;
+  background:rgba(0,0,0,.82);border:1px solid rgba(255,255,255,.09);
+}
+.cname-ov{
+  position:absolute;bottom:0;left:0;right:0;padding:14px 3px 3px;
+  background:linear-gradient(transparent,rgba(0,0,0,.88));
+  font-size:8px;font-weight:700;text-align:center;color:rgba(255,255,255,.85);pointer-events:none;
+}
+
+/* SIDE */
+.side{grid-area:side;padding:8px 8px 8px 0;display:flex;flex-direction:column;gap:7px;min-height:0;}
+.spanel{
+  padding:11px 12px;border-radius:12px;
+  background:var(--panel);border:1px solid rgba(255,255,255,.07);box-shadow:var(--shadow);
+}
+.stitle{
+  font-family:'Cinzel',serif;color:var(--gold2);font-size:15px;font-weight:700;letter-spacing:.4px;
+}
+.pimg{
+  width:100%;aspect-ratio:5/7;border-radius:9px;
+  background:#0a0d12 center/cover no-repeat;
+  border:1px solid rgba(255,255,255,.08);margin-top:9px;
+  box-shadow:inset 0 0 28px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.5);
+  transition:background-image .2s, transform .15s ease;
+}
+.pname{margin-top:7px;font-size:16px;font-weight:800;}
+.ptype{margin-top:3px;font-size:11px;color:#b0bec8;}
+.ppt{margin-top:3px;font-family:'Cinzel',serif;font-size:13px;color:var(--gold);}
+.poracle{
+  margin-top:5px;font-size:10px;line-height:1.5;color:var(--muted);
+  border-top:1px solid rgba(255,255,255,.06);padding-top:5px;max-height:80px;overflow-y:auto;
+}
+.logpanel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+.log{
+  display:flex;flex-direction:column;gap:4px;overflow-y:auto;flex:1 1 auto;
+  margin-top:7px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;
+}
+.li{
+  font-size:11px;line-height:1.4;padding:6px 8px;border-radius:7px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.05);color:#c8d4de;flex-shrink:0;
+}
+.li.lp{border-left:2px solid rgba(99,209,139,.4);}
+.li.le{border-left:2px solid rgba(239,83,80,.4);}
+.li.ls{border-left:2px solid rgba(213,179,95,.4);color:var(--gold);}
+.li.lc{border-left:2px solid rgba(191,139,255,.6);background:rgba(191,139,255,.05);}
+
+/* OVERLAYS */
+.ov{
+  position:fixed;inset:0;background:rgba(0,0,0,.9);
+  display:flex;align-items:center;justify-content:center;z-index:1000;
+}
+.modal{
+  width:min(94vw,500px);padding:26px;border-radius:16px;
+  background:linear-gradient(180deg,rgba(20,27,37,.99),rgba(10,14,20,.99));
+  border:1px solid rgba(255,255,255,.09);box-shadow:var(--shadow);text-align:center;
+}
+.mtitle{font-family:'Cinzel',serif;font-size:24px;color:var(--gold2);letter-spacing:1px;}
+.msub{margin:8px 0 16px;color:#c5d0db;font-size:13px;line-height:1.55;}
+textarea{
+  width:100%;height:170px;margin:12px 0;resize:none;padding:11px;
+  border-radius:9px;border:1px solid rgba(255,255,255,.09);background:#080c12;
+  color:#ccd6e0;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.5;
+}
+textarea:focus{outline:none;border-color:rgba(213,179,95,.3);}
+.ltxt{font-family:'Cinzel',serif;color:var(--gold2);font-size:22px;animation:pulse 1.3s infinite;}
+@keyframes pulse{0%{opacity:.4;}50%{opacity:1;}100%{opacity:.4;}}
+
+/* MULLIGAN */
+.mull-hand{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0;}
+.mull-card{
+  position:relative;width:72px;height:100px;border-radius:6px;
+  background:#111 center/cover no-repeat;border:1px solid rgba(255,255,255,.1);
+  cursor:pointer;transition:transform .15s,box-shadow .15s;overflow:hidden;
+}
+.mull-card:hover{transform:translateY(-4px) scale(1.05);}
+.mull-card .cname-ov{font-size:7px;}
+.mull-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+
+/* DAMAGE POPUPS */
+.dpop{
+  position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);
+  font-weight:800;font-size:28px;pointer-events:none;
+  text-shadow:0 0 12px rgba(0,0,0,.65);animation:fdmg 1s ease-out forwards;z-index:2000;
+}
+.dpop.r{color:#ff6b6b;}.dpop.g{color:#7ef29a;}.dpop.v{color:#d0aaff;}.dpop.gold{color:#ffd986;}
+@keyframes fdmg{
+  0%{opacity:0;transform:translate(-50%,-16px) scale(.55);}
+  15%{opacity:1;transform:translate(-50%,-28px) scale(1.08);}
+  100%{opacity:0;transform:translate(-50%,-95px) scale(.92);}
+}
+
+/* RESULT FLASH */
+.rfl{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  z-index:200;pointer-events:none;animation:ffl .85s ease-out forwards;
+}
+.rflt{
+  font-family:'Cinzel',serif;font-size:48px;font-weight:700;letter-spacing:3px;text-shadow:0 0 36px currentColor;
+}
+@keyframes ffl{
+  0%{opacity:0;transform:scale(.65);}
+  18%{opacity:1;transform:scale(1.06);}
+  62%{opacity:1;}
+  100%{opacity:0;transform:scale(1.12);}
+}
+
+@media(max-width:1100px){
+  .app{grid-template-columns:1fr;grid-template-areas:'ebar' 'battle' 'parea';}
+  .side{display:none;}
+}
+</style>
 </head>
 <body>
-  <div id="loading" class="overlay" style="display:none;">
-    <div class="modal">
-      <div class="loading-text">Míchám osud...</div>
-      <div class="footer-help">Tahám obrázky a připravuju Arcane Wheel.</div>
-    </div>
-  </div>
 
-  <div id="setup" class="overlay">
-    <div class="modal">
-      <div class="result-title">MTG Roulette: Arcane Run</div>
-      <div class="result-sub">Vyber akci. Wheel rozhodne, jak dopadne.</div>
-      <textarea id="deck-input">4 Goblin Guide
+<!-- LOADING -->
+<div id="ov-loading" class="ov" style="display:none;">
+  <div class="modal">
+    <div class="ltxt" id="load-txt">Míchám osud...</div>
+    <div style="margin-top:8px;font-size:12px;color:var(--muted);" id="load-sub">Tahám karty ze Scryfall...</div>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div id="ov-setup" class="ov">
+  <div class="modal">
+    <div class="mtitle">MTG Roulette</div>
+    <div class="msub">Arcane Wheel rozhodne výsledek každé akce.<br><span style="font-size:11px;color:var(--muted);">3 Charges/tah · Fail → Luck · Enemy taky točí</span></div>
+    <textarea id="deck-input">4 Goblin Guide
 4 Monastery Swiftspear
 4 Eidolon of the Great Revel
 4 Lightning Bolt
 4 Shock
-20 Mountain</textarea>
-      <button class="btn gold" onclick="startGame()">Spustit run</button>
-      <div class="footer-help">
-        3 Charges za tah. Každá akce se deklaruje a pak se točí. Faily zvyšují Luck. Enemy taky točí.
+4 Searing Blaze
+4 Skullcrack
+16 Mountain</textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+      <button class="btn gold" onclick="startGame('medium')" style="flex:1;min-width:130px;padding:11px;">⚔ Medium</button>
+      <button class="btn grn" onclick="startGame('easy')" style="flex:1;min-width:130px;padding:11px;">😊 Easy</button>
+      <button class="btn red" onclick="startGame('hard')" style="flex:1;min-width:130px;padding:11px;">💀 Hard</button>
+    </div>
+    <div style="margin-top:9px;font-size:11px;color:var(--muted);">Formát: <code>4 Lightning Bolt</code> · obrázky ze Scryfall API</div>
+  </div>
+</div>
+
+<!-- MULLIGAN -->
+<div id="ov-mulligan" class="ov" style="display:none;">
+  <div class="modal" style="max-width:560px;">
+    <div class="mtitle">Opening Hand</div>
+    <div class="msub" id="mull-sub">Toto je tvoje počáteční ruka. Chceš mulligan?<br><span style="font-size:11px;color:var(--muted);" id="mull-count">Mulligan #1 — dostaneš 7 karet znovu.</span></div>
+    <div class="mull-hand" id="mull-hand"></div>
+    <div class="mull-actions">
+      <button class="btn gold" onclick="keepHand()" style="padding:10px 24px;font-size:14px;">✓ Keep</button>
+      <button class="btn red" id="mull-btn" onclick="doMulligan()" style="padding:10px 24px;font-size:14px;">↺ Mulligan</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="ov-end" class="ov" style="display:none;">
+  <div class="modal">
+    <div class="mtitle" id="end-title"></div>
+    <div class="msub" id="end-sub"></div>
+    <button class="btn gold" onclick="resetGame()" style="width:100%;padding:12px;font-size:14px;">Hrát znovu</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game" class="app" style="display:none;">
+
+  <!-- ENEMY BAR -->
+  <div class="enemy-bar">
+    <div class="cmb">
+      <div class="avatar" id="e-av">A</div>
+      <div>
+        <div class="cname" id="e-name">The Archmage</div>
+        <div class="csub" id="e-info">Library 0 · Hand 0</div>
+      </div>
+    </div>
+    <div class="ehand" id="e-hbacks"></div>
+    <div class="cmb" style="gap:8px;">
+      <div>
+        <div class="mana-row" id="e-mpips"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;text-align:center;" id="e-mtext">0/0</div>
+      </div>
+      <div class="hp-block">
+        <div class="hp ep" id="e-hp">20</div>
+        <div class="hp-lbl">HP</div>
       </div>
     </div>
   </div>
 
-  <div id="end-overlay" class="overlay" style="display:none;">
-    <div class="modal">
-      <div id="end-title" class="result-title"></div>
-      <div id="end-sub" class="result-sub"></div>
-      <button class="btn gold" onclick="resetGame()">Hrát znovu</button>
+  <!-- BATTLEFIELD -->
+  <div class="battlefield" id="battlefield">
+    <div class="zone ez" id="eboard">
+      <div class="zlbl">Enemy Battlefield</div>
+      <div class="zempty" id="eb-empty">Prázdné bojiště</div>
+    </div>
+    <div class="fdiv"></div>
+    <div class="zone" id="pboard">
+      <div class="zlbl">Your Battlefield</div>
+      <div class="zempty" id="pb-empty">Prázdné bojiště</div>
+    </div>
+
+    <!-- WHEEL -->
+    <div class="wov" id="wov">
+      <div class="intent-card">
+        <div class="ilbl" id="i-owner">Player Turn</div>
+        <div class="imain" id="i-main">Vyber akci</div>
+        <div class="isub" id="i-sub">Klikni na akci nebo kartu v ruce.</div>
+        <div class="ichaos" id="i-chaos"></div>
+      </div>
+      <div class="wwrap" id="wwrap">
+        <div class="wptr"></div>
+        <canvas id="wheel" width="280" height="280"></canvas>
+      </div>
+      <div class="wstats">
+        <div class="sbox"><div class="slbl">Charges</div><div class="sval" id="s-ch" style="color:var(--gold);">3</div></div>
+        <div class="sbox"><div class="slbl">Luck</div><div class="sval" id="s-lk" style="color:var(--violet);">0</div></div>
+        <div class="sbox"><div class="slbl">Success</div><div class="sval" id="s-sc" style="color:var(--green);">—</div></div>
+        <div class="sbox"><div class="slbl">Crit</div><div class="sval" id="s-cr" style="color:var(--blue);">—</div></div>
+      </div>
+    </div>
+
+    <!-- ACTIONS BAR -->
+    <div class="abar">
+      <div class="phases">
+        <div class="ph" id="ph-u">UNTAP</div>
+        <div class="ph" id="ph-d">DRAW</div>
+        <div class="ph active" id="ph-m">MAIN</div>
+        <div class="ph" id="ph-c">COMBAT</div>
+        <div class="ph" id="ph-e">END</div>
+      </div>
+      <button class="btn red"  id="b-atk"  onclick="qa('ATTACK')">⚔ Attack</button>
+      <button class="btn grn"  id="b-land" onclick="qa('LAND')">🏔 Land</button>
+      <button class="btn blue" id="b-cast" onclick="qa('CAST')">✨ Cast</button>
+      <button class="btn vio"  id="b-draw" onclick="qa('DRAW')">🃏 Draw</button>
+      <button class="btn"      id="b-foc"  onclick="qa('FOCUS')">🎯 Focus</button>
+      <button class="btn gold" id="b-spin" onclick="doSpin()">SPIN ◎</button>
+      <button class="btn"      id="b-wheel" onclick="toggleWheel()">🎡 Toggle Wheel</button>
+      <button class="btn"      id="b-end"  onclick="endTurn()">End Turn →</button>
     </div>
   </div>
 
-  <div id="game" class="app" style="display:none;">
-    <div class="enemy-area">
-      <div class="enemy-meta">
-        <div class="avatar">A</div>
+  <!-- PLAYER AREA -->
+  <div class="parea">
+    <div class="ptop">
+      <div class="pleft">
+        <div class="hp-block">
+          <div class="hp pp" id="p-hp">20</div>
+          <div class="hp-lbl">HP</div>
+        </div>
         <div>
-          <div class="name">The Archmage</div>
-          <div class="sub" id="enemy-lib">Library 0</div>
+          <div class="mana-row" id="p-mpips"></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;" id="p-mtext">0/0</div>
         </div>
+        <div style="font-size:11px;color:var(--muted);" id="p-lib">Library 0</div>
       </div>
-      <div class="enemy-hand" id="enemy-hand-backs"></div>
-      <div class="enemy-meta">
-        <div class="pips" id="enemy-mana"></div>
-        <div class="hp enemy" id="enemy-hp">20</div>
+      <div class="pright">
+        <div class="tag" id="t-turn">Turn 1</div>
+        <div class="tag ct" id="t-ch">3 Charges</div>
       </div>
     </div>
-
-    <div class="battlefield" id="battlefield">
-      <div class="zone enemy" id="enemy-board">
-        <div class="zone-label">Enemy Battlefield</div>
-      </div>
-      <div class="zone player" id="player-board">
-        <div class="zone-label">Your Battlefield</div>
-      </div>
-
-      <div class="wheel-center" id="wheel-center">
-        <div class="intent-card panel">
-          <div class="intent-title" id="turn-owner">Player Turn</div>
-          <div class="intent-main" id="intent-main">Vyber akci</div>
-          <div class="intent-sub" id="intent-sub">Klikni na kartu v ruce a pak na akci.</div>
-        </div>
-
-        <div class="wheel-wrap">
-          <div class="wheel-pointer"></div>
-          <canvas id="wheel" width="320" height="320"></canvas>
-        </div>
-
-        <div class="wheel-stats panel">
-          <div class="stat-box"><div class="stat-label">Charges</div><div class="stat-value" id="stat-charges">3</div></div>
-          <div class="stat-box"><div class="stat-label">Luck</div><div class="stat-value" id="stat-luck">0</div></div>
-          <div class="stat-box"><div class="stat-label">Success</div><div class="stat-value" id="stat-success">0%</div></div>
-          <div class="stat-box"><div class="stat-label">Critical</div><div class="stat-value" id="stat-crit">0%</div></div>
-        </div>
-      </div>
-
-      <div class="actions-bar">
-        <button class="btn red" onclick="queueAction('ATTACK')">Attack</button>
-        <button class="btn green" onclick="queueAction('PLAY_LAND')">Play Land</button>
-        <button class="btn blue" onclick="queueAction('CAST')">Cast Spell</button>
-        <button class="btn violet" onclick="queueAction('DRAW')">Draw</button>
-        <button class="btn" onclick="queueAction('FOCUS')">Focus</button>
-        <button class="btn" onclick="toggleWheel()">Toggle Wheel</button>
-        <button class="btn gold" id="spin-btn" onclick="spinWheel()">Spin</button>
-        <button class="btn" onclick="endTurn()">End Turn</button>
-      </div>
-    </div>
-
-    <div class="player-area">
-      <div class="player-topbar">
-        <div class="player-meta">
-          <div class="hp player" id="player-hp">20</div>
-          <div class="pips" id="player-mana"></div>
-          <div class="sub" id="player-lib">Library 0</div>
-        </div>
-        <div class="turn-info">
-          <div class="tag" id="turn-tag">Turn 1</div>
-          <div class="tag" id="charges-tag">3 Charges</div>
-        </div>
-      </div>
-      <div class="hand" id="player-hand"></div>
-    </div>
-
-    <div class="side">
-      <div class="side-panel panel" style="flex: 0 0 auto;">
-        <div class="section-title">Card Preview</div>
-        <div class="preview-image" id="preview-image"></div>
-        <div class="preview-name" id="preview-name">Žádná karta</div>
-        <div class="preview-type" id="preview-type">Klikni na kartu v ruce nebo na bojišti.</div>
-        <div class="preview-text" id="preview-text"></div>
-      </div>
-      <div class="side-panel panel" style="flex: 1 1 auto; min-height: 0; display:flex; flex-direction:column;">
-        <div class="section-title">Battle Log</div>
-        <div class="log" id="log"></div>
-      </div>
-    </div>
+    <div class="hand" id="phand"></div>
   </div>
 
-  <script>
-    const FALLBACK_IMAGE = `data:image/svg+xml;utf8,
-      <svg xmlns="http://www.w3.org/2000/svg" width="488" height="680" viewBox="0 0 488 680">
-        <rect width="100%" height="100%" fill="%23080b11"/>
-        <rect x="18" y="18" width="452" height="644" rx="20" fill="%23141a23" stroke="%23323b47"/>
-        <text x="244" y="330" fill="%23d5b35f" font-size="30" text-anchor="middle" font-family="Arial">Card</text>
-      </svg>`;
+  <!-- SIDE -->
+  <div class="side">
+    <div class="spanel" style="flex:0 0 auto;">
+      <div class="stitle">Card Preview</div>
+      <div class="pimg" id="pv-img"></div>
+      <div class="pname" id="pv-name">Žádná karta</div>
+      <div class="ptype" id="pv-type">Klikni nebo najeď na kartu.</div>
+      <div class="ppt" id="pv-pt"></div>
+      <div class="poracle" id="pv-oracle"></div>
+    </div>
+    <div class="spanel logpanel">
+      <div class="stitle">Battle Log</div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
 
-    const ACTION_DEFS = {
-      ATTACK: { name: 'Attack' },
-      PLAY_LAND: { name: 'Play Land' },
-      CAST: { name: 'Cast Spell' },
-      DRAW: { name: 'Draw' },
-      FOCUS: { name: 'Focus' },
+<script>
+// ── CONSTANTS ──────────────────────────────────────────────────────
+const FALLBACK = `data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='488' height='680'><rect width='488' height='680' fill='%230a0d14'/><rect x='18' y='18' width='452' height='644' rx='22' fill='%23141a24' stroke='%23323b48'/><text x='244' y='320' fill='%23d5b35f' font-size='26' text-anchor='middle' font-family='Arial'>✦</text><text x='244' y='360' fill='%23d5b35f' font-size='14' text-anchor='middle' font-family='Arial'>Card</text></svg>`;
+
+const RS = {
+  FAIL:    {col:'#5a1818',lbl:'FAIL',   tc:'#ff9090'},
+  WEAK:    {col:'#5c4818',lbl:'WEAK',   tc:'#ffd090'},
+  SUCCESS: {col:'#1a5230',lbl:'SUCCESS',tc:'#90ffb8'},
+  CRIT:    {col:'#1a3560',lbl:'CRIT',   tc:'#90c8ff'},
+  CHAOS:   {col:'#421870',lbl:'CHAOS',  tc:'#d0aaff'},
+};
+
+const AM = {
+  ATTACK:  {name:'Attack',   icon:'⚔', col:'#ef5350'},
+  LAND:    {name:'Play Land',icon:'🏔',col:'#63d18b'},
+  CAST:    {name:'Cast Spell',icon:'✨',col:'#67a6ff'},
+  DRAW:    {name:'Draw',     icon:'🃏',col:'#bf8bff'},
+  FOCUS:   {name:'Focus',    icon:'🎯',col:'#ffd986'},
+};
+
+const CHAOS_FX = {
+  ATTACK: 'Enemy dostane 1 Charge zpět.',
+  LAND:   'Bonus Charge pro tebe.',
+  CAST:   'Spell OK ale Luck +1.',
+  DRAW:   '+1 líznout navíc, pak discard 1.',
+  FOCUS:  'Double focus — wheel hodně silnější.',
+};
+
+// Harder odds: more FAIL/WEAK
+function getDist(action, actorId) {
+  const actor = G[actorId];
+  if (!action) return {segs:['FAIL','FAIL','WEAK','SUCCESS','SUCCESS','CRIT','CHAOS','WEAK'], sc:50, cc:12};
+
+  let segs;
+  switch(action.type) {
+    case 'DRAW':   segs=['FAIL','WEAK','WEAK','SUCCESS','SUCCESS','SUCCESS','CRIT','CHAOS']; break;
+    case 'LAND':   segs=['FAIL','WEAK','SUCCESS','SUCCESS','SUCCESS','CRIT','SUCCESS','CHAOS']; break;
+    case 'CAST': {
+      const cmc=Math.max(1,action.card?.cmc??1);
+      if(cmc<=1)      segs=['FAIL','FAIL','WEAK','SUCCESS','SUCCESS','SUCCESS','CRIT','CHAOS'];
+      else if(cmc<=3) segs=['FAIL','FAIL','FAIL','WEAK','SUCCESS','SUCCESS','CRIT','CHAOS'];
+      else            segs=['FAIL','FAIL','FAIL','FAIL','WEAK','SUCCESS','SUCCESS','CRIT'];
+      break;
+    }
+    case 'ATTACK': segs=['FAIL','FAIL','FAIL','WEAK','WEAK','SUCCESS','CRIT','CHAOS']; break;
+    case 'FOCUS':  segs=['FAIL','FAIL','WEAK','SUCCESS','SUCCESS','SUCCESS','CRIT','CHAOS']; break;
+    default:       segs=['FAIL','FAIL','WEAK','WEAK','SUCCESS','SUCCESS','CRIT','CHAOS'];
+  }
+
+  let s=[...segs];
+  for(let i=0;i<(actor?.luck||0);i++){const x=s.indexOf('FAIL');if(x>=0)s[x]='SUCCESS';}
+  if(actor?.focused){const x=s.indexOf('WEAK');if(x>=0)s[x]='CRIT';}
+
+  const ok=s.filter(x=>x!=='FAIL').length;
+  const cr=s.filter(x=>x==='CRIT').length;
+  return {segs:s, sc:Math.round(ok/s.length*100), cc:Math.round(cr/s.length*100)};
+}
+
+// ── STATE ──────────────────────────────────────────────────────────
+let G={};
+let wRot=0;
+let audioCtx=null;
+const cache=new Map();
+let mulliganCount=0;
+let wheelManualHidden=false;
+let previewLockedUid=null;
+let glowSeg=-1;
+
+// ── AUDIO ──────────────────────────────────────────────────────────
+function initAudio(){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+}
+function tone(type='square', f=900, d=0.022, v=0.02, slideTo=null){
+  try{
+    initAudio();
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type=type;
+    o.frequency.setValueAtTime(f,audioCtx.currentTime);
+    if(slideTo!=null) o.frequency.exponentialRampToValueAtTime(Math.max(40,slideTo),audioCtx.currentTime+d);
+    g.gain.setValueAtTime(v,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+d);
+    o.connect(g);g.connect(audioCtx.destination);
+    o.start();o.stop(audioCtx.currentTime+d+0.005);
+  }catch(_){}
+}
+function tick(f=900,d=0.02,v=0.018){
+  tone('square',f,d,v,Math.max(80,f*0.94));
+}
+function critSound(){
+  tone('triangle',240,0.18,0.08,840);
+  setTimeout(()=>tone('sawtooth',500,0.08,0.03,220),55);
+}
+function failSound(){
+  tone('sine',180,0.09,0.035,90);
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────
+const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
+function shake(){document.body.classList.remove('shake');void document.body.offsetWidth;document.body.classList.add('shake');}
+function popup(zid,txt,cls='r'){
+  const c=document.getElementById(zid); if(!c) return;
+  const r=c.getBoundingClientRect();
+  popupAt(r.left+r.width/2,r.top+r.height*0.38,txt,cls);
+}
+function popupAt(x,y,txt,cls='r'){
+  const el=document.createElement('div');
+  el.className=`dpop ${cls}`;
+  el.textContent=txt;
+  el.style.left=`${x}px`;
+  el.style.top=`${y}px`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1050);
+}
+function popupFromUid(uidVal, txt, cls='r'){
+  const el=document.querySelector(`.card[data-uid="${uidVal}"]`);
+  if(!el) return popup('battlefield',txt,cls);
+  const r=el.getBoundingClientRect();
+  popupAt(r.left+r.width/2,r.top+r.height*0.2,txt,cls);
+}
+function flashResult(type){
+  const s=RS[type];
+  const el=document.createElement('div');
+  el.className='rfl';
+  el.innerHTML=`<div class="rflt" style="color:${s.tc}">${s.lbl}</div>`;
+  document.getElementById('battlefield').appendChild(el);
+  setTimeout(()=>el.remove(),880);
+}
+const isLand=c=>c.type?.toLowerCase().includes('land');
+const isCrea=c=>c.type?.toLowerCase().includes('creature');
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function lower(str){return (str||'').toLowerCase();}
+function setWheelHidden(hidden){
+  document.getElementById('wov').classList.toggle('hidden', hidden);
+}
+function toggleWheel(){
+  wheelManualHidden=!wheelManualHidden;
+  setWheelHidden(wheelManualHidden);
+}
+
+// colour class from card
+function cclass(c){
+  if(!c) return 'cgry';
+  const t=lower(c.type);
+  const n=lower(c.name);
+  if(n.includes('mountain')||n.includes('bolt')||n.includes('goblin')||n.includes('shock')||n.includes('searing')||n.includes('skullcrack')) return 'cred';
+  if(n.includes('island')||n.includes('counter')||n.includes('sphinx')) return 'cblu';
+  if(n.includes('forest')||n.includes('elf')) return 'cgrn';
+  if(n.includes('plains')||n.includes('angel')) return 'cwht';
+  if(n.includes('swamp')||n.includes('zombie')) return 'cblk';
+  if(t.includes('land')) return 'cgry';
+  return 'cgry';
+}
+
+// ── SCRYFALL ──────────────────────────────────────────────────────
+function pickImage(d){
+  return (
+    d?.image_uris?.normal ||
+    d?.image_uris?.large ||
+    d?.image_uris?.png ||
+    d?.image_uris?.small ||
+    d?.card_faces?.[0]?.image_uris?.normal ||
+    d?.card_faces?.[0]?.image_uris?.large ||
+    d?.card_faces?.[0]?.image_uris?.png ||
+    d?.card_faces?.[0]?.image_uris?.small ||
+    d?.card_faces?.[1]?.image_uris?.normal ||
+    d?.card_faces?.[1]?.image_uris?.large ||
+    d?.card_faces?.[1]?.image_uris?.png ||
+    null
+  );
+}
+async function preloadImage(src){
+  if(!src) return false;
+  return await new Promise(res=>{
+    const i=new Image();
+    i.onload=()=>res(true);
+    i.onerror=()=>res(false);
+    i.src=src;
+  });
+}
+async function getCard(name){
+  if(cache.has(name)) return cache.get(name);
+  try{
+    let d=null;
+    let r=await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
+    if(r.ok) d=await r.json();
+    if(!d || d.object==='error'){
+      r=await fetch(`https://api.scryfall.com/cards/search?q=!%22${encodeURIComponent(name)}%22`);
+      if(r.ok){
+        const sd=await r.json();
+        d=sd?.data?.[0]||null;
+      }
+    }
+    if(!d) throw new Error();
+
+    let img=pickImage(d) || FALLBACK;
+    let ok=await preloadImage(img);
+    if(!ok){
+      img = FALLBACK;
+    }
+
+    const card={
+      name:d.name || name,
+      imageUrl:img,
+      type:(d.type_line||d.card_faces?.[0]?.type_line||'Unknown').toLowerCase(),
+      power:d.power??d.card_faces?.[0]?.power??null,
+      toughness:d.toughness??d.card_faces?.[0]?.toughness??null,
+      cmc:Number(d.cmc??0),
+      oracle:d.oracle_text||d.card_faces?.map(f=>f.oracle_text).filter(Boolean).join(' // ')||'',
     };
+    cache.set(name,card);return card;
+  }catch(_){
+    const fb={name,imageUrl:FALLBACK,type:'unknown',power:null,toughness:null,cmc:0,oracle:''};
+    cache.set(name,fb);return fb;
+  }
+}
 
-    const RESULT_STYLES = {
-      FAIL: { color: '#7b2d2d', text: 'FAIL' },
-      WEAK: { color: '#8a6f2d', text: 'WEAK' },
-      SUCCESS: { color: '#2d7b49', text: 'SUCCESS' },
-      CRIT: { color: '#2d568a', text: 'CRITICAL' },
-      CHAOS: { color: '#6d34a3', text: 'CHAOS' },
-    };
+function mkInst(c){return{...c,uid:uid(),tapped:false,summoningSick:false,dmg:0};}
 
-    const imageCache = new Map();
-    const wheelCanvas = document.getElementById('wheel');
-    const wheelCtx = wheelCanvas.getContext('2d');
+// ── DECK PARSE ────────────────────────────────────────────────────
+function parseDeck(){
+  return document.getElementById('deck-input').value
+    .split('\n').flatMap(l=>{
+      const t=l.trim();if(!t)return[];
+      const m=t.match(/^(\d+)x?\s+(.+)$/i);
+      if(!m)return[t];
+      return Array(Math.max(1,parseInt(m[1]))).fill(m[2].trim());
+    });
+}
 
-    let G = {};
-    let wheelRotation = 0;
-    let audioCtx = null;
+// ── WHEEL ────────────────────────────────────────────────────────
+const wc=document.getElementById('wheel');
+const wctx=wc.getContext('2d');
 
-    function uid() {
-      return (crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+function drawWheel(){
+  const {segs}=getDist(G.pendingAction, G.activeActor||'player');
+  const cx=140,cy=140,r=136,sl=(Math.PI*2)/segs.length;
+  wctx.clearRect(0,0,280,280);
+  wctx.save();wctx.translate(cx,cy);wctx.rotate(wRot);
+
+  segs.forEach((seg,i)=>{
+    const s=RS[seg],st=i*sl,en=(i+1)*sl;
+    wctx.beginPath();wctx.moveTo(0,0);wctx.arc(0,0,r,st,en);wctx.closePath();
+
+    if(i===glowSeg){
+      const grad=wctx.createRadialGradient(0,0,20,0,0,r+6);
+      grad.addColorStop(0, s.col);
+      grad.addColorStop(.78, s.col);
+      grad.addColorStop(1, s.tc);
+      wctx.fillStyle=grad;
+      wctx.shadowBlur=22;
+      wctx.shadowColor=s.tc;
+    }else{
+      wctx.fillStyle=s.col;
+      wctx.shadowBlur=0;
     }
 
-    function ensureAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    wctx.fill();
+    wctx.lineWidth=1.5;wctx.strokeStyle='rgba(255,255,255,0.09)';wctx.stroke();
+
+    wctx.save();
+    wctx.rotate(st+sl/2);
+    wctx.translate(95,0);
+    wctx.rotate(Math.PI/2);
+    wctx.fillStyle=s.tc;
+    wctx.font='bold 11px Inter';
+    wctx.textAlign='center';
+    wctx.fillText(s.lbl,0,4);
+    wctx.restore();
+  });
+
+  wctx.shadowBlur=0;
+  wctx.beginPath();wctx.arc(0,0,30,0,Math.PI*2);
+  wctx.fillStyle='#0d1420';wctx.fill();
+  wctx.lineWidth=1.5;wctx.strokeStyle='rgba(255,217,134,.38)';wctx.stroke();
+  wctx.fillStyle='#ffd986';wctx.font='bold 9px Cinzel';wctx.textAlign='center';
+  wctx.fillText('ARCANE',0,-4);wctx.fillText('RUN',0,8);
+  wctx.restore();
+}
+
+// ── HUD ──────────────────────────────────────────────────────────
+function pips(el,cur,max){
+  let h='';for(let i=0;i<Math.min(max,10);i++)h+=`<div class="pip ${i<cur?'full':'spent'}"></div>`;
+  el.innerHTML=h;
+}
+
+function hud(){
+  if(!G.player)return;
+  const p=G.player,e=G.enemy;
+  document.getElementById('p-hp').textContent=Math.max(0,p.hp);
+  document.getElementById('e-hp').textContent=Math.max(0,e.hp);
+  document.getElementById('p-lib').textContent=`Library ${p.deck.length}`;
+  document.getElementById('e-info').textContent=`Library ${e.deck.length} · Hand ${e.hand.length}`;
+  document.getElementById('p-mtext').textContent=`${p.mana}/${p.maxMana} Mana`;
+  document.getElementById('e-mtext').textContent=`${e.mana}/${e.maxMana}`;
+  document.getElementById('t-turn').textContent=`Turn ${G.turn}`;
+  document.getElementById('t-ch').textContent=`${p.charges} Charges`;
+  const act=G[G.activeActor];
+  document.getElementById('s-ch').textContent=act.charges;
+  document.getElementById('s-lk').textContent=act.luck;
+  const dist=getDist(G.pendingAction,G.activeActor);
+  document.getElementById('s-sc').textContent=G.pendingAction?`${dist.sc}%`:'—';
+  document.getElementById('s-cr').textContent=G.pendingAction?`${dist.cc}%`:'—';
+  document.getElementById('i-owner').textContent=G.activeActor==='player'?'Player Turn':'Enemy Turn';
+  pips(document.getElementById('p-mpips'),p.mana,p.maxMana);
+  pips(document.getElementById('e-mpips'),e.mana,e.maxMana);
+  document.getElementById('e-hbacks').innerHTML=Array(Math.min(e.hand.length,10)).fill('<div class="cb"></div>').join('');
+  renderBoards();renderHand();updateBtns();
+}
+
+function updateBtns(){
+  if(!G.player)return;
+  const p=G.player,my=G.activeActor==='player',sp=G.spinning,nc=p.charges<=0;
+  ['b-atk','b-land','b-cast','b-draw','b-foc'].forEach(id=>{
+    document.getElementById(id).disabled=!my||sp||nc;
+  });
+  document.getElementById('b-land').disabled=!my||sp||nc||p.landDone;
+  document.getElementById('b-spin').disabled=!my||sp||!G.pendingAction;
+  document.getElementById('b-end').disabled=!my||sp;
+  ['b-atk','b-land','b-cast','b-draw','b-foc'].forEach(id=>document.getElementById(id).classList.remove('aa'));
+  if(G.pendingAction){
+    const map={ATTACK:'b-atk',LAND:'b-land',CAST:'b-cast',DRAW:'b-draw',FOCUS:'b-foc'};
+    const b=map[G.pendingAction.type];if(b)document.getElementById(b).classList.add('aa');
+  }
+}
+
+function setPhase(ph){
+  G.phase=ph;
+  const ord={u:0,d:1,m:2,c:3,e:4};const cur=ord[ph]??2;
+  ['u','d','m','c','e'].forEach((p,i)=>{
+    const el=document.getElementById(`ph-${p}`);if(!el)return;
+    el.classList.toggle('active',i===cur);el.classList.toggle('done',i<cur);
+  });
+}
+
+// ── CARD HTML ────────────────────────────────────────────────────
+function cardEl(card, zone, extra=''){
+  const cc=cclass(card);
+  const imgStyle=card.imageUrl?`background-image:url('${card.imageUrl.replace(/'/g,"%27")}')`:'';
+  const tapped=card.tapped?'tapped':'';
+  const sick=card.summoningSick&&zone==='board'?'sick':'';
+  const locked=previewLockedUid===card.uid?'locked':'';
+  const nameOv=`<div class="cname-ov">${card.name}</div>`;
+  const sickM=card.summoningSick&&zone==='board'?'<div class="cmark sk">SICK</div>':'';
+  const ptM=isCrea(card)&&zone==='board'?`<div class="pt">${card.power??'?'}/${card.toughness??'?'}</div>`:'';
+  return `<div class="card ${zone==='hand'?'hc':'bc'} ${cc} ${tapped} ${sick} ${locked} ${extra}"
+    style="${imgStyle}" data-uid="${card.uid}">${sickM}${ptM}${nameOv}</div>`;
+}
+
+function bindClicks(root, cards){
+  root.querySelectorAll('.card').forEach(el=>{
+    const c=cards.find(x=>x.uid===el.dataset.uid);
+    if(!c)return;
+    el.addEventListener('mouseenter',()=>{
+      if(!previewLockedUid) preview(c);
+    });
+    el.addEventListener('mouseleave',()=>{
+      if(!previewLockedUid) preview(null);
+    });
+    el.addEventListener('click',()=>{
+      if(previewLockedUid===c.uid){
+        previewLockedUid=null;
+        el.classList.remove('locked');
+      }else{
+        previewLockedUid=c.uid;
+        preview(c);
       }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+      renderBoards();
+      renderHand();
+    });
+  });
+}
+
+function renderBoards(){
+  const pb=document.getElementById('pboard');
+  const eb=document.getElementById('eboard');
+  if(G.player.board.length){
+    pb.innerHTML='<div class="zlbl">Your Battlefield</div>'+G.player.board.map(c=>cardEl(c,'board')).join('');
+    bindClicks(pb,G.player.board);
+  } else {
+    pb.innerHTML='<div class="zlbl">Your Battlefield</div><div class="zempty">Prázdné bojiště</div>';
+  }
+  if(G.enemy.board.length){
+    eb.innerHTML='<div class="zlbl">Enemy Battlefield</div>'+G.enemy.board.map(c=>cardEl(c,'board')).join('');
+    bindClicks(eb,G.enemy.board);
+  } else {
+    eb.innerHTML='<div class="zlbl">Enemy Battlefield</div><div class="zempty">Prázdné bojiště</div>';
+  }
+}
+
+function handTransform(i, total, selected=false, hovered=false){
+  const center=(total-1)/2;
+  const off=i-center;
+  const rot=off*7;
+  const y=Math.abs(off)*7 + (selected?20:0) - (hovered?34:0);
+  const scale=selected?1.12:(hovered?1.1:1);
+  return `rotate(${rot}deg) translateY(${y}px) scale(${scale}) rotateX(-7deg)`;
+}
+function renderHand(){
+  const el=document.getElementById('phand');
+  const cards=G.player.hand;
+  const w=cards.length>=10?78:cards.length>=8?86:cards.length>=6?96:104;
+  document.documentElement.style.setProperty('--hcw',`${w}px`);
+  document.documentElement.style.setProperty('--hch',`${Math.round(w*1.4)}px`);
+  const ov=cards.length>=10?-26:cards.length>=8?-20:cards.length>=6?-14:-9;
+  el.innerHTML=cards.map((c,i)=>{
+    const sel=i===G.player.selIdx?'sel':'';
+    const pg=canPlay(c)?'pg':'';
+    return cardEl(c,'hand',`${sel} ${pg}`);
+  }).join('');
+  el.querySelectorAll('.hc').forEach((e,i)=>{
+    e.style.margin=`0 ${ov}px`;
+    e.style.transform=handTransform(i,cards.length,i===G.player.selIdx,false);
+    e.addEventListener('mouseenter',()=>{
+      if(!previewLockedUid) preview(cards[i]);
+      e.style.transform=handTransform(i,cards.length,i===G.player.selIdx,true);
+    });
+    e.addEventListener('mouseleave',()=>{
+      if(!previewLockedUid) preview(null);
+      e.style.transform=handTransform(i,cards.length,i===G.player.selIdx,false);
+    });
+    e.addEventListener('click',()=>{
+      if(G.activeActor!=='player'||G.spinning)return;
+      G.player.selIdx=G.player.selIdx===i?null:i;
+      const c=G.player.selIdx!==null?G.player.hand[G.player.selIdx]:null;
+      previewLockedUid = c ? c.uid : null;
+      preview(c);
+      if(c){
+        if(isLand(c)&&!G.player.landDone) setPending({type:'LAND',actorId:'player',card:c});
+        else if(!isLand(c)) setPending({type:'CAST',actorId:'player',card:c});
+      }else{
+        setPending(null);
+      }
+      hud();
+    });
+  });
+}
+
+function canPlay(c){
+  if(!G.player)return false;
+  if(isLand(c))return !G.player.landDone;
+  return c.cmc<=G.player.mana;
+}
+
+// ── PREVIEW ──────────────────────────────────────────────────────
+function preview(card){
+  const pimg=document.getElementById('pv-img');
+  pimg.style.backgroundImage=card?(card.imageUrl?`url('${card.imageUrl.replace(/'/g,"%27")}')`:'none'):'none';
+  if(card&&!card.imageUrl){pimg.style.background=`var(--panel) center/cover`;}
+  document.getElementById('pv-name').textContent=card?card.name:'Žádná karta';
+  document.getElementById('pv-type').textContent=card?`${card.type}  ·  CMC ${card.cmc??0}${card.tapped?' · Tapped':''}${card.summoningSick?' · Sick':''}`:'Klikni nebo najeď na kartu.';
+  document.getElementById('pv-pt').textContent=card&&card.power!=null?`${card.power} / ${card.toughness}`:'';
+  document.getElementById('pv-oracle').textContent=card?.oracle||'';
+}
+
+// ── PENDING ACTION ────────────────────────────────────────────────
+function setPending(action){
+  G.pendingAction=action;
+  if(!action){
+    document.getElementById('i-main').textContent='Vyber akci';
+    document.getElementById('i-sub').textContent=G.activeActor==='player'?'Klikni na akci nebo kartu v ruce.':'Enemy přemýšlí...';
+    document.getElementById('i-chaos').textContent='';
+  } else {
+    const m=AM[action.type];
+    document.getElementById('i-main').textContent=`${m.icon} ${m.name}${action.card?' — '+action.card.name:''}`;
+    const d=getDist(action,G.activeActor);
+    document.getElementById('i-sub').textContent=`Připraveno · Spin! (${d.sc}% úspěch · ${d.cc}% crit)`;
+    document.getElementById('i-chaos').textContent=`CHAOS: ${CHAOS_FX[action.type]||''}`;
+  }
+  drawWheel();hud();
+}
+
+// ── QUEUE ACTION ──────────────────────────────────────────────────
+function qa(type){
+  if(G.activeActor!=='player'||G.spinning)return;
+  if(G.player.charges<=0){log('Žádné Charges. Ukonči tah.','s');return;}
+  const sel=G.player.selIdx!==null?G.player.hand[G.player.selIdx]:null;
+
+  if(type==='LAND'){
+    const land=(sel&&isLand(sel))?sel:G.player.hand.find(isLand);
+    if(!land)return log('Nemáš zemi v ruce.','s');
+    if(G.player.landDone)return log('Zem tohoto tahu je zahrána.','s');
+    setPending({type:'LAND',actorId:'player',card:land});
+  } else if(type==='CAST'){
+    const spell=(sel&&!isLand(sel))?sel:G.player.hand.filter(c=>!isLand(c)&&c.cmc<=G.player.mana).sort((a,b)=>b.cmc-a.cmc)[0];
+    if(!spell)return log('Žádný seslatelný spell (zkontroluj manu).','s');
+    setPending({type:'CAST',actorId:'player',card:spell});
+  } else if(type==='ATTACK'){
+    const atks=G.player.board.filter(c=>isCrea(c)&&!c.tapped&&!c.summoningSick);
+    if(!atks.length)return log('Žádné untapped tvorové (nebo mají sick).','s');
+    setPending({type:'ATTACK',actorId:'player'});setPhase('c');
+  } else if(type==='DRAW'){
+    setPending({type:'DRAW',actorId:'player'});
+  } else if(type==='FOCUS'){
+    setPending({type:'FOCUS',actorId:'player'});
+  }
+}
+
+// ── RESOLVE ──────────────────────────────────────────────────────
+async function resolve(action, result){
+  const actor=G[action.actorId];
+  const eid=action.actorId==='player'?'enemy':'player';
+  const enemy=G[eid];
+  const isP=action.actorId==='player';
+  actor.charges=Math.max(0,actor.charges-1);
+
+  if(result==='FAIL'){
+    actor.luck=Math.min(actor.luck+1,5);actor.focused=false;
+    log(`${lbl(action.actorId)} failnul ${AM[action.type].name}. Luck +1 → ${actor.luck}.`,isP?'p':'e');
+    failSound();
+    popup(isP?'pboard':'eboard','FAIL ✗','r');return;
+  }
+
+  if(action.type==='FOCUS'){
+    actor.focused=true;actor.luck=Math.max(0,actor.luck-1);
+    if(result==='CHAOS'){actor.focused=true;}
+    popup(isP?'pboard':'eboard','FOCUS','gold');
+    log(`${lbl(action.actorId)} Focus. Wheel zlepšen.`,isP?'p':'e');return;
+  }
+
+  if(action.type==='DRAW'){
+    const draws=result==='CRIT'?2:1;const names=[];
+    for(let i=0;i<draws;i++){
+      const c=await drawC(action.actorId,true);
+      if(c&&isP){names.push(c.name);preview(c);}
+    }
+    if(result==='CHAOS'){
+      actor.luck=Math.min(actor.luck+1,5);
+      if(actor.hand.length>1){
+        const d=actor.hand.splice(Math.floor(Math.random()*actor.hand.length),1)[0];
+        log(`CHAOS discard: ${d.name}.`,'s');
       }
     }
+    actor.luck=Math.max(0,actor.luck-1);
+    popup(isP?'pboard':'eboard',draws>1?'+2 Draw':'+1 Draw','v');
+    log(`${lbl(action.actorId)} lízl ${draws}${isP&&names.length?' ('+names.join(', ')+')':', karet.'}.`,isP?'p':'e');return;
+  }
 
-    function playTickSound(freq = 950, duration = 0.03, volume = 0.02) {
-      try {
-        ensureAudio();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.value = freq;
-        gain.gain.value = volume;
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
-      } catch (_) {}
+  if(action.type==='LAND'){
+    if(actor.landDone){log('Zem tohoto tahu zahrána.','s');return;}
+    const land=action.card;
+    rmHand(actor,land);
+    actor.board.push({...land,uid:uid(),tapped:false,summoningSick:false,dmg:0});
+    actor.maxMana++;actor.mana++;actor.landDone=true;
+    actor.luck=Math.max(0,actor.luck-1);actor.focused=false;
+    if(result==='CRIT'||result==='CHAOS'){actor.charges=Math.min(actor.charges+1,3);log('Bonus Charge!','s');}
+    popup(isP?'pboard':'eboard','+Mana','g');
+    log(`${lbl(action.actorId)} hraje ${land.name}. Mana ${actor.mana}/${actor.maxMana}.`,isP?'p':'e');return;
+  }
+
+  if(action.type==='CAST'){
+    const card=action.card;
+    if(card.cmc>actor.mana){
+      actor.luck=Math.min(actor.luck+1,5);
+      log(`${lbl(action.actorId)} nemá dost many na ${card.name} (CMC ${card.cmc}).`,'s');
+      return;
     }
+    actor.mana-=card.cmc;
+    rmHand(actor,card);
 
-    function playCritSound() {
-      try {
-        ensureAudio();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(420, audioCtx.currentTime);
-        osc.frequency.linearRampToValueAtTime(860, audioCtx.currentTime + 0.12);
-        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.18);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.2);
-      } catch (_) {}
+    if(isCrea(card)){
+      const inst={...card,uid:uid(),tapped:result==='WEAK',summoningSick:true,dmg:0};
+      actor.board.push(inst);
+      if(result==='CRIT'){actor.charges=Math.min(actor.charges+1,3);}
+      if(result==='CHAOS'){actor.luck=Math.min(actor.luck+1,5);}
+      popup(isP?'pboard':'eboard','Cast!','gold');
+      log(`${lbl(action.actorId)} sesílá ${card.name} ${card.power}/${card.toughness}${result==='WEAK'?' (tapped)':''}${result==='CRIT'?' (Crit: +Charge)':''}.`,isP?'p':'e');
+    } else {
+      const dmg=spellDmg(card,result);
+      enemy.hp=Math.max(0,enemy.hp-dmg);
+      popup(isP ? 'eboard' : 'pboard', `-${dmg}`,'r');
+      if(result==='CRIT'){actor.charges=Math.min(actor.charges+1,3);}
+      if(result==='CHAOS'){actor.luck=Math.min(actor.luck+1,5);}
+      log(`${lbl(action.actorId)} cast ${card.name} → ${dmg} dmg${result==='CRIT'?' (CRIT!)':''}${result==='CHAOS'?' (CHAOS!)':''}.`,isP?'p':'e');
     }
+    actor.luck=Math.max(0,actor.luck-1);actor.focused=false;return;
+  }
 
-    function triggerShake() {
-      document.body.classList.remove('shake');
-      void document.body.offsetWidth;
-      document.body.classList.add('shake');
-    }
+  if(action.type==='ATTACK'){
+    const atks=actor.board.filter(c=>isCrea(c)&&!c.tapped&&!c.summoningSick);
+    if(!atks.length){log(`${lbl(action.actorId)} nemá útočníky.`,'s');return;}
+    atks.forEach(c=>c.tapped=true);
+    const blks=enemy.board.filter(c=>isCrea(c)&&!c.tapped);
+    let freeDmg=0;
 
-    function addLog(text) {
-      G.log = G.log || [];
-      G.log.unshift(text);
-      G.log = G.log.slice(0, 18);
-      document.getElementById('log').innerHTML = G.log.map(item => `<div class="log-item">${item}</div>`).join('');
-    }
-
-    function setIntent(title, subtitle = '') {
-      document.getElementById('intent-main').textContent = title;
-      document.getElementById('intent-sub').textContent = subtitle;
-    }
-
-    function toggleWheel() {
-      const el = document.getElementById('wheel-center');
-      el.classList.toggle('hidden');
-    }
-
-    function showPopup(targetId, text, color = 'red') {
-      const target = document.getElementById(targetId);
-      if (!target) return;
-
-      const el = document.createElement('div');
-      el.className = `damage-popup ${color}`;
-      el.textContent = text;
-      target.appendChild(el);
-      setTimeout(() => el.remove(), 900);
-    }
-
-    function showDamage(actorId, amount) {
-      if (!amount || amount <= 0) return;
-      const targetId = actorId === 'player' ? 'player-board' : 'enemy-board';
-      showPopup(targetId, `-${amount}`, 'red');
-    }
-
-    function showHeal(actorId, amount) {
-      if (!amount || amount <= 0) return;
-      const targetId = actorId === 'player' ? 'player-board' : 'enemy-board';
-      showPopup(targetId, `+${amount}`, 'green');
-    }
-
-    function showBuff(actorId, text) {
-      const targetId = actorId === 'player' ? 'player-board' : 'enemy-board';
-      showPopup(targetId, text, 'gold');
-    }
-
-    function setPreview(card) {
-      const img = document.getElementById('preview-image');
-      const name = document.getElementById('preview-name');
-      const type = document.getElementById('preview-type');
-      const text = document.getElementById('preview-text');
-
-      if (!card) {
-        img.style.backgroundImage = 'none';
-        name.textContent = 'Žádná karta';
-        type.textContent = 'Klikni na kartu v ruce nebo na bojišti.';
-        text.textContent = '';
-        return;
-      }
-
-      img.style.backgroundImage = `url('${card.imageUrl || FALLBACK_IMAGE}')`;
-      name.textContent = card.name;
-      type.textContent = `${card.type} • MV ${card.cmc ?? 0}`;
-
-      const parts = [];
-      if (card.power != null && card.toughness != null) parts.push(`P/T ${card.power}/${card.toughness}`);
-      if (card.tapped) parts.push('Tapped');
-      if (card.summoningSick) parts.push('Summoning sickness');
-      if (card.oracle) parts.push(card.oracle);
-      text.textContent = parts.join(' • ');
-    }
-
-    async function preloadImage(url) {
-      if (!url) return;
-      return new Promise(resolve => {
-        const img = new Image();
-        img.onload = resolve;
-        img.onerror = resolve;
-        img.src = url;
-      });
-    }
-
-    async function fetchCardData(name) {
-      if (imageCache.has(name)) return imageCache.get(name);
-
-      try {
-        const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
-        if (!res.ok) throw new Error('Card not found');
-
-        const data = await res.json();
-        const card = {
-          name: data.name,
-          imageUrl: data.image_uris?.normal || data.card_faces?.[0]?.image_uris?.normal || FALLBACK_IMAGE,
-          type: (data.type_line || data.card_faces?.[0]?.type_line || 'Unknown').toLowerCase(),
-          power: data.power ?? data.card_faces?.[0]?.power ?? null,
-          toughness: data.toughness ?? data.card_faces?.[0]?.toughness ?? null,
-          cmc: Number(data.cmc ?? 0),
-          oracle: data.oracle_text || data.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '',
-        };
-        await preloadImage(card.imageUrl);
-        imageCache.set(name, card);
-        return card;
-      } catch (_) {
-        const fallback = {
-          name,
-          imageUrl: FALLBACK_IMAGE,
-          type: 'unknown',
-          power: null,
-          toughness: null,
-          cmc: 0,
-          oracle: '',
-        };
-        imageCache.set(name, fallback);
-        return fallback;
-      }
-    }
-
-    function makeInstance(card) {
-      return { uid: uid(), ...card, tapped: false, summoningSick: false };
-    }
-
-    function parseDecklist() {
-      return document.getElementById('deck-input').value
-        .split('\n')
-        .flatMap(line => {
-          const t = line.trim();
-          if (!t) return [];
-          const m = t.match(/^(\d+)x?\s+(.+)$/i);
-          if (!m) return [t];
-          const count = Math.max(1, parseInt(m[1], 10));
-          return Array(count).fill(m[2].trim());
-        });
-    }
-
-    function shuffle(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-    }
-
-    function isLand(c) { return c.type?.includes('land'); }
-    function isCreature(c) { return c.type?.includes('creature'); }
-
-    function renderPips(cur, max) {
-      let html = '';
-      for (let i = 0; i < Math.min(max, 12); i++) {
-        html += `<div class="pip ${i < cur ? 'full' : ''}"></div>`;
-      }
-      return html;
-    }
-
-    function handWidth(count) {
-      if (count >= 10) return 82;
-      if (count >= 8) return 92;
-      if (count >= 6) return 102;
-      return 112;
-    }
-
-    function handOverlap(count) {
-      if (count >= 10) return -28;
-      if (count >= 8) return -22;
-      if (count >= 6) return -16;
-      return -11;
-    }
-
-    function createCardHTML(card, zoneType, selected = false) {
-      const classes = [
-        'card',
-        zoneType === 'hand' ? 'hand-card' : 'board-card',
-        selected ? 'selected' : '',
-        card.tapped ? 'tapped' : '',
-        card.summoningSick && zoneType === 'board' ? 'sick' : '',
-      ].filter(Boolean).join(' ');
-
-      const tags = [];
-      if (card.summoningSick && zoneType === 'board') tags.push('<div class="card-mark">SICK</div>');
-      if (isCreature(card) && zoneType === 'board') tags.push(`<div class="pt">${card.power ?? '?'} / ${card.toughness ?? '?'}</div>`);
-
-      return `<div class="${classes}" style="background-image:url('${card.imageUrl || FALLBACK_IMAGE}')" data-uid="${card.uid}">${tags.join('')}</div>`;
-    }
-
-    function bindCardClicks(root, cards) {
-      root.querySelectorAll('.card').forEach(el => {
-        const card = cards.find(c => c.uid === el.dataset.uid);
-        if (!card) return;
-        el.onclick = () => setPreview(card);
-      });
-    }
-
-    function currentActor() {
-      return G[G.activeActor];
-    }
-
-    function actorById(id) {
-      return G[id];
-    }
-
-    function updateHUD() {
-      document.getElementById('player-hp').textContent = G.player.hp;
-      document.getElementById('enemy-hp').textContent = G.enemy.hp;
-      document.getElementById('player-lib').textContent = `Library ${G.player.deck.length}`;
-      document.getElementById('enemy-lib').textContent = `Library ${G.enemy.deck.length}`;
-      document.getElementById('player-mana').innerHTML = renderPips(G.player.mana, G.player.maxMana);
-      document.getElementById('enemy-mana').innerHTML = renderPips(G.enemy.mana, G.enemy.maxMana);
-      document.getElementById('turn-tag').textContent = `Turn ${G.turn}`;
-      document.getElementById('charges-tag').textContent = `${G.player.charges} Charges`;
-      document.getElementById('stat-charges').textContent = currentActor().charges;
-      document.getElementById('stat-luck').textContent = currentActor().luck;
-
-      const dist = getDistribution(G.pendingAction, G.activeActor);
-      document.getElementById('stat-success').textContent = `${dist.successChance}%`;
-      document.getElementById('stat-crit').textContent = `${dist.critChance}%`;
-      document.getElementById('turn-owner').textContent = G.activeActor === 'player' ? 'Player Turn' : 'Enemy Turn';
-
-      const enemyHand = document.getElementById('enemy-hand-backs');
-      enemyHand.innerHTML = Array.from({ length: G.enemy.handCount }, () => '<div class="card-back"></div>').join('');
-
-      const handEl = document.getElementById('player-hand');
-      const width = handWidth(G.player.hand.length);
-      const overlap = handOverlap(G.player.hand.length);
-      document.documentElement.style.setProperty('--hand-card-w', `${width}px`);
-
-      handEl.innerHTML = G.player.hand.map((c, i) => createCardHTML(c, 'hand', i === G.player.selectedHandIdx)).join('');
-      handEl.querySelectorAll('.hand-card').forEach((el, i) => {
-        el.style.margin = `0 ${overlap}px`;
-        el.onclick = () => {
-          if (G.activeActor !== 'player' || G.spinning) return;
-          G.player.selectedHandIdx = G.player.selectedHandIdx === i ? null : i;
-          setPreview(G.player.selectedHandIdx === null ? null : G.player.hand[G.player.selectedHandIdx]);
-          updateHUD();
-        };
-      });
-
-      const playerBoard = document.getElementById('player-board');
-      playerBoard.innerHTML = '<div class="zone-label">Your Battlefield</div>' + G.player.board.map(c => createCardHTML(c, 'board')).join('');
-      bindCardClicks(playerBoard, G.player.board);
-
-      const enemyBoard = document.getElementById('enemy-board');
-      enemyBoard.innerHTML = '<div class="zone-label">Enemy Battlefield</div>' + G.enemy.board.map(c => createCardHTML(c, 'board')).join('');
-      bindCardClicks(enemyBoard, G.enemy.board);
-    }
-
-    function removeHandCard(actor, card) {
-      const idx = actor.hand.findIndex(c => c.uid === card.uid);
-      if (idx >= 0) actor.hand.splice(idx, 1);
-      actor.selectedHandIdx = null;
-      if (actor === G.enemy) actor.handCount = actor.hand.length;
-    }
-
-    async function drawCard(actorId, faceUp = true) {
-      const actor = actorById(actorId);
-      if (actor.deck.length <= 0) return null;
-
-      const name = actor.deck.shift();
-
-      if (!faceUp) {
-        actor.handCount += 1;
-        return name;
-      }
-
-      const cardData = await fetchCardData(name);
-      const instance = makeInstance(cardData);
-      actor.hand.push(instance);
-      if (actorId === 'enemy') actor.handCount = actor.hand.length;
-      return instance;
-    }
-
-    function startOfTurn(actorId) {
-      const actor = actorById(actorId);
-      actor.board.forEach(c => {
-        c.tapped = false;
-        c.summoningSick = false;
-      });
-      actor.landDone = false;
-      actor.charges = 3;
-      actor.mana = actor.maxMana;
-      actor.focused = false;
-      if (actorId === 'player') G.player.selectedHandIdx = null;
-    }
-
-    function sideName(id) {
-      return id === 'player' ? 'Hráč' : 'Enemy';
-    }
-
-    function getSelectedPlayerCard() {
-      return G.player.selectedHandIdx === null ? null : G.player.hand[G.player.selectedHandIdx];
-    }
-
-    function getDistribution(action, actorId = G.activeActor) {
-      const actor = actorById(actorId);
-
-      if (!action) {
-        return {
-          segments: ['FAIL', 'WEAK', 'SUCCESS', 'SUCCESS', 'CRIT', 'CHAOS'],
-          successChance: 50,
-          critChance: 16,
-        };
-      }
-
-      let segments;
-
-      switch (action.type) {
-        case 'DRAW':
-          segments = ['FAIL', 'WEAK', 'SUCCESS', 'SUCCESS', 'SUCCESS', 'CRIT', 'CHAOS', 'SUCCESS'];
-          break;
-        case 'PLAY_LAND':
-          segments = ['FAIL', 'SUCCESS', 'SUCCESS', 'SUCCESS', 'SUCCESS', 'CRIT', 'SUCCESS', 'CHAOS'];
-          break;
-        case 'CAST': {
-          const card = action.card;
-          const cmc = Math.max(1, card?.cmc ?? 1);
-          if (cmc <= 1) segments = ['FAIL', 'WEAK', 'SUCCESS', 'SUCCESS', 'SUCCESS', 'CRIT', 'CHAOS', 'SUCCESS'];
-          else if (cmc <= 3) segments = ['FAIL', 'FAIL', 'WEAK', 'SUCCESS', 'SUCCESS', 'CRIT', 'CHAOS', 'SUCCESS'];
-          else segments = ['FAIL', 'FAIL', 'FAIL', 'WEAK', 'SUCCESS', 'SUCCESS', 'CRIT', 'CHAOS'];
-          break;
+    atks.forEach((att,i)=>{
+      const blk=blks[i];
+      if(blk){
+        const ap=parseInt(att.power)||0,bp=parseInt(blk.power)||0;
+        const at=parseInt(att.toughness)||0,bt=parseInt(blk.toughness)||0;
+        blk.dmg=(blk.dmg||0)+ap;att.dmg=(att.dmg||0)+bp;
+        popupFromUid(att.uid,`-${bp}`,'r');
+        popupFromUid(blk.uid,`-${ap}`,'r');
+        if(blk.dmg>=bt){
+          const bi=enemy.board.indexOf(blk);if(bi>=0)enemy.board.splice(bi,1);
+          log(`${blk.name} zničen v boji.`,'s');
         }
-        case 'ATTACK':
-          segments = ['FAIL', 'FAIL', 'WEAK', 'SUCCESS', 'SUCCESS', 'SUCCESS', 'CRIT', 'CHAOS'];
-          break;
-        case 'FOCUS':
-          segments = ['FAIL', 'SUCCESS', 'SUCCESS', 'SUCCESS', 'CRIT', 'CHAOS', 'SUCCESS', 'SUCCESS'];
-          break;
-        default:
-          segments = ['FAIL', 'WEAK', 'SUCCESS', 'SUCCESS', 'CRIT', 'CHAOS', 'SUCCESS', 'FAIL'];
-      }
-
-      for (let i = 0; i < actor.luck; i++) {
-        const idx = segments.indexOf('FAIL');
-        if (idx >= 0) segments[idx] = 'SUCCESS';
-      }
-
-      if (actor.focused) {
-        const idx = segments.indexOf('WEAK');
-        if (idx >= 0) segments[idx] = 'CRIT';
-      }
-
-      const successCount = segments.filter(x => x === 'SUCCESS' || x === 'WEAK' || x === 'CRIT' || x === 'CHAOS').length;
-      const critCount = segments.filter(x => x === 'CRIT').length;
-
-      return {
-        segments,
-        successChance: Math.round((successCount / segments.length) * 100),
-        critChance: Math.round((critCount / segments.length) * 100),
-      };
-    }
-
-    function drawWheel() {
-      const { segments } = getDistribution(G.pendingAction, G.activeActor);
-      const cx = 160, cy = 160, r = 154;
-      const slice = (Math.PI * 2) / segments.length;
-
-      wheelCtx.clearRect(0, 0, 320, 320);
-      wheelCtx.save();
-      wheelCtx.translate(cx, cy);
-      wheelCtx.rotate(wheelRotation);
-
-      segments.forEach((seg, i) => {
-        const style = RESULT_STYLES[seg];
-        const start = i * slice;
-        const end = (i + 1) * slice;
-
-        wheelCtx.beginPath();
-        wheelCtx.moveTo(0, 0);
-        wheelCtx.arc(0, 0, r, start, end);
-        wheelCtx.closePath();
-        wheelCtx.fillStyle = style.color;
-        wheelCtx.fill();
-        wheelCtx.lineWidth = 2;
-        wheelCtx.strokeStyle = 'rgba(255,255,255,0.12)';
-        wheelCtx.stroke();
-
-        wheelCtx.save();
-        const mid = start + slice / 2;
-        wheelCtx.rotate(mid);
-        wheelCtx.translate(108, 0);
-        wheelCtx.rotate(Math.PI / 2);
-        wheelCtx.fillStyle = '#fff';
-        wheelCtx.font = 'bold 13px Inter';
-        wheelCtx.textAlign = 'center';
-        wheelCtx.fillText(style.text, 0, 0);
-        wheelCtx.restore();
-      });
-
-      wheelCtx.beginPath();
-      wheelCtx.arc(0, 0, 36, 0, Math.PI * 2);
-      wheelCtx.fillStyle = '#101622';
-      wheelCtx.fill();
-      wheelCtx.lineWidth = 2;
-      wheelCtx.strokeStyle = 'rgba(255,217,134,0.5)';
-      wheelCtx.stroke();
-
-      wheelCtx.fillStyle = '#ffd986';
-      wheelCtx.font = 'bold 16px Cinzel';
-      wheelCtx.textAlign = 'center';
-      wheelCtx.fillText('ARCANE', 0, -3);
-      wheelCtx.fillText('RUN', 0, 15);
-
-      wheelCtx.restore();
-    }
-
-    function setPendingAction(action) {
-      G.pendingAction = action;
-
-      if (!action) {
-        setIntent('Vyber akci', G.activeActor === 'player' ? 'Klikni na kartu v ruce a pak na akci.' : 'Enemy přemýšlí...');
+        if(att.dmg>=at){
+          const ai=actor.board.indexOf(att);if(ai>=0)actor.board.splice(ai,1);
+          log(`${att.name} zničen v boji.`,'s');
+        }
       } else {
-        setIntent(
-          `${G.activeActor === 'player' ? 'Declare' : 'Enemy'}: ${ACTION_DEFS[action.type].name}`,
-          action.card ? action.card.name : (action.note || 'Arcane Wheel rozhodne výsledek.')
-        );
+        freeDmg+=(parseInt(att.power)||0);
       }
+    });
 
+    let fd=freeDmg;
+    if(result==='WEAK') fd=Math.max(1,Math.floor(freeDmg/2));
+    if(result==='CRIT') fd=freeDmg*2;
+    if(result==='CHAOS'){actor.charges=Math.min(actor.charges+1,3);enemy.charges=Math.min(enemy.charges+1,3);}
+
+    if(fd>0){
+      enemy.hp=Math.max(0,enemy.hp-fd);
+      popup(isP ? 'eboard' : 'pboard',`-${fd}`,'r');
+    }
+    const blktxt=blks.length?` (${blks.length} blokeři, free ${fd} dmg)`:` (žádné bloky, ${fd} dmg)`;
+    log(`${lbl(action.actorId)} útočí s ${atks.length} tvory${blktxt}${result==='CRIT'?' CRIT!':result==='WEAK'?' WEAK':''}`,isP?'p':'e');
+    actor.luck=Math.max(0,actor.luck-1);actor.focused=false;return;
+  }
+}
+
+function spellDmg(card,result){
+  const n=lower(card.name);
+  const t={WEAK:1,SUCCESS:3,CRIT:6,CHAOS:3};
+  if(n.includes('lightning bolt'))  return {WEAK:2,SUCCESS:3,CRIT:6,CHAOS:3}[result]??0;
+  if(n.includes('shock'))           return {WEAK:1,SUCCESS:2,CRIT:4,CHAOS:2}[result]??0;
+  if(n.includes('searing blaze'))   return {WEAK:2,SUCCESS:4,CRIT:8,CHAOS:4}[result]??0;
+  if(n.includes('skullcrack'))      return {WEAK:1,SUCCESS:3,CRIT:5,CHAOS:3}[result]??0;
+  return t[result]??0;
+}
+
+function rmHand(actor,card){
+  const i=actor.hand.findIndex(c=>c.uid===card.uid);
+  if(i>=0)actor.hand.splice(i,1);
+  actor.selIdx=null;
+  if(previewLockedUid===card.uid) previewLockedUid=null;
+}
+
+async function drawC(actorId,faceUp=true){
+  const actor=G[actorId];
+  if(!actor.deck.length)return null;
+  const name=actor.deck.shift();
+  if(!faceUp){
+    actor.hand.push({name,imageUrl:FALLBACK,type:'unknown',cmc:0,power:null,toughness:null,oracle:'',uid:uid(),tapped:false,summoningSick:false,dmg:0});
+    return name;
+  }
+  const cd=await getCard(name);const inst=mkInst(cd);actor.hand.push(inst);return inst;
+}
+
+// ── SPIN ──────────────────────────────────────────────────────────
+async function doSpin(){
+  if(G.spinning||!G.pendingAction)return;
+  const actor=G[G.activeActor];
+  if(actor.charges<=0){log('Žádné Charges.','s');return;}
+  initAudio();G.spinning=true;document.getElementById('b-spin').disabled=true;
+
+  const {segs}=getDist(G.pendingAction,G.activeActor);
+  const ci=Math.floor(Math.random()*segs.length);
+  const sl=(Math.PI*2)/segs.length;
+  const mid=ci*sl+sl/2;
+  const turns=5+Math.random()*2.5;
+  const final=turns*Math.PI*2+(-Math.PI/2-mid);
+  const from=wRot,dur=2550+Math.random()*430,st=performance.now();
+  let lb=-1;
+  const wrap=document.getElementById('wwrap');
+
+  await new Promise(res=>{
+    function fr(now){
+      const p=Math.min((now-st)/dur,1);
+      const e=1-Math.pow(1-p,3);
+      wRot=from+(final-from)*e;
+      const segFloat=(((-wRot - Math.PI/2)%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
+      glowSeg=(Math.floor(segFloat/sl)+segs.length)%segs.length;
       drawWheel();
-      updateHUD();
+
+      const bk=Math.floor(p*34);
+      if(bk!==lb&&p<0.985){
+        lb=bk;
+        const freq=220 + ((1-p)*780);
+        tick(freq,0.014 + p*0.01,0.02);
+        wrap.classList.remove('bounce'); void wrap.offsetWidth; wrap.classList.add('bounce');
+      }
+      if(p<1) requestAnimationFrame(fr); else res();
     }
-
-    function queueAction(type) {
-      if (G.activeActor !== 'player' || G.spinning) return;
-
-      const actor = G.player;
-      if (actor.charges <= 0) {
-        addLog('Nemáš Charges. Ukonči tah.');
-        return;
-      }
-
-      const selected = getSelectedPlayerCard();
-
-      if (type === 'PLAY_LAND') {
-        const land = selected && isLand(selected) ? selected : actor.hand.find(isLand);
-        if (!land) return addLog('Nemáš zemi v ruce.');
-        return setPendingAction({ type, actorId: 'player', card: land });
-      }
-
-      if (type === 'CAST') {
-        const spell = selected && !isLand(selected) ? selected : actor.hand.find(c => !isLand(c));
-        if (!spell) return addLog('Nemáš spell v ruce.');
-        return setPendingAction({ type, actorId: 'player', card: spell });
-      }
-
-      if (type === 'ATTACK') return setPendingAction({ type, actorId: 'player' });
-      if (type === 'DRAW') return setPendingAction({ type, actorId: 'player' });
-      if (type === 'FOCUS') return setPendingAction({ type, actorId: 'player', note: 'Další spin má silnější wheel.' });
-    }
-
-    function applyDamage(targetActorId, amount) {
-      const target = actorById(targetActorId);
-      target.hp = Math.max(0, target.hp - amount);
-      showDamage(targetActorId, amount);
-    }
-
-    function applyHeal(targetActorId, amount) {
-      const target = actorById(targetActorId);
-      target.hp += amount;
-      showHeal(targetActorId, amount);
-    }
-
-    function simpleSpellEffect(card, actorId, resultType) {
-      const actor = actorById(actorId);
-      const enemyId = actorId === 'player' ? 'enemy' : 'player';
-      const lower = card.name.toLowerCase();
-
-      if (lower === 'lightning bolt') {
-        const dmg = resultType === 'CRIT' ? 6 : resultType === 'WEAK' ? 2 : 3;
-        applyDamage(enemyId, dmg);
-        if (resultType === 'CHAOS') actor.luck = Math.min(actor.luck + 1, 3);
-        return `${card.name} udělil ${dmg} damage.`;
-      }
-
-      if (lower === 'shock') {
-        const dmg = resultType === 'CRIT' ? 4 : resultType === 'WEAK' ? 1 : 2;
-        applyDamage(enemyId, dmg);
-        if (resultType === 'CHAOS') actor.charges = Math.min(actor.charges + 1, 3);
-        return `${card.name} udělil ${dmg} damage.`;
-      }
-
-      const base = { WEAK: 2, SUCCESS: 3, CRIT: 5, CHAOS: 3 }[resultType] ?? 0;
-      applyDamage(enemyId, base);
-      return `${card.name} použil fallback efekt za ${base} damage.`;
-    }
-
-    async function resolveAction(action, resultType) {
-      const actor = actorById(action.actorId);
-      const enemyId = action.actorId === 'player' ? 'enemy' : 'player';
-      let msg = '';
-
-      if (resultType === 'FAIL') {
-        actor.luck = Math.min(actor.luck + 1, 3);
-        actor.charges = Math.max(actor.charges - 1, 0);
-
-        if (action.type === 'CAST' && action.card?.name.toLowerCase() === 'eidolon of the great revel') {
-          applyDamage(action.actorId, 2);
-          applyDamage(enemyId, 2);
-          msg = `${sideName(action.actorId)} failnul cast a Eidolon pálí oba za 2.`;
-        } else {
-          msg = `${sideName(action.actorId)} failnul ${ACTION_DEFS[action.type].name}. Luck +1.`;
-        }
-
-        actor.focused = false;
-        addLog(msg);
-        return;
-      }
-
-      if (action.type === 'FOCUS') {
-        actor.charges = Math.max(actor.charges - 1, 0);
-        actor.focused = true;
-        actor.luck = Math.max(actor.luck - 1, 0);
-        showBuff(action.actorId, 'FOCUS');
-        addLog(`${sideName(action.actorId)} se soustředí. Další spin má silnější wheel.`);
-        return;
-      }
-
-      if (action.type === 'DRAW') {
-        actor.charges = Math.max(actor.charges - 1, 0);
-        const draws = resultType === 'CRIT' ? 2 : 1;
-        let names = [];
-
-        for (let i = 0; i < draws; i++) {
-          const card = await drawCard(action.actorId, true);
-          if (!card) break;
-          names.push(card.name);
-        }
-
-        if (resultType === 'CHAOS') actor.luck = Math.min(actor.luck + 1, 3);
-        actor.luck = Math.max(actor.luck - 1, 0);
-        actor.focused = false;
-        showBuff(action.actorId, draws > 1 ? '+2 DRAW' : '+1 DRAW');
-        addLog(`${sideName(action.actorId)} lízl ${draws} ${draws > 1 ? 'karty' : 'kartu'}${names.length && action.actorId === 'player' ? `: ${names.join(', ')}` : '.'}`);
-        return;
-      }
-
-      if (action.type === 'PLAY_LAND') {
-        actor.charges = Math.max(actor.charges - 1, 0);
-        if (actor.landDone) {
-          addLog(`${sideName(action.actorId)} už tento tah hrál zemi.`);
-          return;
-        }
-
-        const land = action.card;
-        removeHandCard(actor, land);
-        actor.board.push({ ...land, tapped: false, summoningSick: false });
-        actor.maxMana += 1;
-        actor.mana += 1;
-        actor.landDone = true;
-        actor.luck = Math.max(actor.luck - 1, 0);
-        actor.focused = false;
-        if (resultType === 'CRIT') actor.charges = Math.min(actor.charges + 1, 3);
-        showBuff(action.actorId, '+MANA');
-        addLog(`${sideName(action.actorId)} položil ${land.name}. Mana ${actor.mana}/${actor.maxMana}.`);
-        return;
-      }
-
-      if (action.type === 'CAST') {
-        const card = action.card;
-        const manaCost = Math.max(0, card.cmc);
-        actor.charges = Math.max(actor.charges - 1, 0);
-
-        if (manaCost > actor.mana) {
-          actor.luck = Math.min(actor.luck + 1, 3);
-          actor.focused = false;
-          addLog(`${sideName(action.actorId)} nemá dost many na ${card.name}.`);
-          return;
-        }
-
-        actor.mana -= manaCost;
-        removeHandCard(actor, card);
-
-        if (isCreature(card)) {
-          const creature = { ...card, tapped: false, summoningSick: true };
-          if (resultType === 'WEAK') creature.tapped = true;
-          actor.board.push(creature);
-          msg = `${sideName(action.actorId)} seslal ${card.name}${resultType === 'WEAK' ? ' tapped.' : '.'}`;
-          if (resultType === 'CRIT') actor.charges = Math.min(actor.charges + 1, 3);
-          if (resultType === 'CHAOS') actor.luck = Math.min(actor.luck + 1, 3);
-          showBuff(action.actorId, 'CAST');
-        } else {
-          msg = `${sideName(action.actorId)} ${simpleSpellEffect(card, action.actorId, resultType)}`;
-          if (resultType === 'CRIT') actor.charges = Math.min(actor.charges + 1, 3);
-        }
-
-        actor.luck = Math.max(actor.luck - 1, 0);
-        actor.focused = false;
-        addLog(msg);
-        return;
-      }
-
-      if (action.type === 'ATTACK') {
-        actor.charges = Math.max(actor.charges - 1, 0);
-        const attackers = actor.board.filter(c => isCreature(c) && !c.tapped && !c.summoningSick);
-
-        if (!attackers.length) {
-          actor.luck = Math.min(actor.luck + 1, 3);
-          actor.focused = false;
-          addLog(`${sideName(action.actorId)} nemá připravené útočníky.`);
-          return;
-        }
-
-        let baseDamage = attackers.reduce((sum, c) => sum + (parseInt(c.power, 10) || 0), 0);
-        attackers.forEach(c => c.tapped = true);
-
-        let finalDamage = baseDamage;
-        if (resultType === 'WEAK') finalDamage = Math.max(1, Math.floor(baseDamage / 2));
-        if (resultType === 'CRIT') finalDamage = baseDamage * 2;
-        if (resultType === 'CHAOS') {
-          finalDamage = baseDamage;
-          actor.charges = Math.min(actor.charges + 1, 3);
-          actor.luck = Math.min(actor.luck + 1, 3);
-        }
-
-        if (actor.board.some(c => c.name.toLowerCase() === 'goblin guide') && resultType === 'CRIT') {
-          const bonus = await drawCard(action.actorId, true);
-          if (bonus && action.actorId === 'player') setPreview(bonus);
-        }
-
-        applyDamage(enemyId, finalDamage);
-        actor.luck = Math.max(actor.luck - 1, 0);
-        actor.focused = false;
-        addLog(`${sideName(action.actorId)} útočí za ${finalDamage}${resultType === 'CRIT' ? ' (CRIT)' : resultType === 'WEAK' ? ' (WEAK)' : ''}.`);
-      }
-    }
-
-    async function spinWheel() {
-      if (G.spinning || !G.pendingAction) return;
-
-      const actor = currentActor();
-      if (actor.charges <= 0) {
-        addLog(`${sideName(G.activeActor)} nemá Charges.`);
-        return;
-      }
-
-      ensureAudio();
-      G.spinning = true;
-      document.getElementById('spin-btn').disabled = true;
-
-      setIntent(
-        `Spinning: ${ACTION_DEFS[G.pendingAction.type].name}`,
-        G.pendingAction.card ? G.pendingAction.card.name : 'Arcane Wheel se rozhoduje...'
-      );
-
-      const { segments } = getDistribution(G.pendingAction, G.activeActor);
-      const slice = (Math.PI * 2) / segments.length;
-      const chosenIndex = Math.floor(Math.random() * segments.length);
-      const pointerAngle = -Math.PI / 2;
-      const segmentMid = chosenIndex * slice + slice / 2;
-      const turns = 5 + Math.random() * 2;
-      const finalRotation = turns * Math.PI * 2 + (pointerAngle - segmentMid);
-      const startRotation = wheelRotation;
-      const duration = 2400;
-      const start = performance.now();
-
-      let lastTickBucket = -1;
-
-      await new Promise(resolve => {
-        function animate(now) {
-          const p = Math.min((now - start) / duration, 1);
-          const eased = 1 - Math.pow(1 - p, 3);
-          wheelRotation = startRotation + (finalRotation - startRotation) * eased;
-          drawWheel();
-
-          const bucket = Math.floor(p * 20);
-          if (bucket !== lastTickBucket && p < 0.96) {
-            lastTickBucket = bucket;
-            const freq = 700 + (1 - p) * 300;
-            playTickSound(freq, 0.02 + (1 - p) * 0.01, 0.018);
-          }
-
-          if (p < 1) requestAnimationFrame(animate);
-          else resolve();
-        }
-        requestAnimationFrame(animate);
-      });
-
-      const resultType = segments[chosenIndex];
-      addLog(`${sideName(G.activeActor)} vytočil ${RESULT_STYLES[resultType].text}.`);
-
-      if (resultType === 'CRIT' || resultType === 'CHAOS') {
-        triggerShake();
-        playCritSound();
-      }
-
-      await resolveAction(G.pendingAction, resultType);
-      G.pendingAction = null;
-      G.spinning = false;
-      document.getElementById('spin-btn').disabled = false;
-
-      updateHUD();
-      drawWheel();
-      setIntent('Vyber akci', G.activeActor === 'player' ? 'Klikni na kartu v ruce a pak na akci.' : 'Enemy přemýšlí...');
-      checkGameOver();
-
-      if (G.activeActor === 'enemy' && !checkGameOver()) {
-        setTimeout(enemyTurnStep, 700);
-      }
-    }
-
-    async function enemyTurnStep() {
-      if (checkGameOver()) return;
-      if (G.activeActor !== 'enemy' || G.spinning) return;
-
-      const enemy = G.enemy;
-
-      if (enemy.charges <= 0) {
-        await finalizeEnemyTurn();
-        return;
-      }
-
-      const playableLand = !enemy.landDone ? enemy.hand.find(isLand) : null;
-      const playableSpell = enemy.hand.filter(c => !isLand(c) && c.cmc <= enemy.mana).sort((a,b) => b.cmc - a.cmc)[0];
-      const attackers = enemy.board.filter(c => isCreature(c) && !c.tapped && !c.summoningSick);
-
-      let action = null;
-
-      if (G.player.hp <= 6 && attackers.length) action = { type: 'ATTACK', actorId: 'enemy' };
-      else if (playableSpell) action = { type: 'CAST', actorId: 'enemy', card: playableSpell };
-      else if (playableLand) action = { type: 'PLAY_LAND', actorId: 'enemy', card: playableLand };
-      else if (attackers.length) action = { type: 'ATTACK', actorId: 'enemy' };
-      else if (enemy.deck.length) action = { type: 'DRAW', actorId: 'enemy' };
-      else action = { type: 'FOCUS', actorId: 'enemy' };
-
-      setPendingAction(action);
-      setTimeout(() => spinWheel(), 800);
-    }
-
-    async function finalizeEnemyTurn() {
-      addLog('Enemy ukončil tah.');
-      G.turn += 1;
-      G.activeActor = 'player';
-      startOfTurn('player');
-      const card = await drawCard('player', true);
-      if (card) {
-        addLog(`Začátek tahu: lízl jsi ${card.name}.`);
-        setPreview(card);
-      }
-      setPendingAction(null);
-      updateHUD();
-      drawWheel();
-    }
-
-    async function endTurn() {
-      if (G.spinning || G.activeActor !== 'player') return;
-
-      addLog('Ukončil jsi tah.');
-      G.activeActor = 'enemy';
-      startOfTurn('enemy');
-      const enemyDraw = await drawCard('enemy', true);
-      if (enemyDraw) addLog('Enemy si lízl kartu.');
-      setPendingAction(null);
-      updateHUD();
-      drawWheel();
-      setTimeout(enemyTurnStep, 700);
-    }
-
-    function checkGameOver() {
-      if (G.player.hp <= 0 && G.enemy.hp <= 0) {
-        showEnd('Remíza', 'Oba jste shořeli v arcane chaosu.');
-        return true;
-      }
-      if (G.player.hp <= 0) {
-        showEnd('Prohra', 'The Archmage tě přetlačil.');
-        return true;
-      }
-      if (G.enemy.hp <= 0) {
-        showEnd('Vítězství', 'Arcane Run jsi ovládl ty.');
-        return true;
-      }
-      return false;
-    }
-
-    function showEnd(title, sub) {
-      document.getElementById('end-title').textContent = title;
-      document.getElementById('end-sub').textContent = sub;
-      document.getElementById('end-overlay').style.display = 'flex';
-    }
-
-    async function startGame() {
-      const deck = parseDecklist();
-      if (deck.length < 10) {
-        alert('Deck je moc malý. Dej tam aspoň 10 karet.');
-        return;
-      }
-
-      ensureAudio();
-
-      document.getElementById('setup').style.display = 'none';
-      document.getElementById('end-overlay').style.display = 'none';
-      document.getElementById('loading').style.display = 'flex';
-
-      shuffle(deck);
-
-      const playerOpeningNames = deck.slice(0, 5);
-      const enemyOpeningNames = deck.slice(5, 10);
-      const playerDeck = deck.slice(10);
-      const enemyDeck = [...deck.slice(10)].reverse();
-
-      const playerOpeningCards = await Promise.all(playerOpeningNames.map(fetchCardData));
-      const enemyOpeningCards = await Promise.all(enemyOpeningNames.map(fetchCardData));
-
-      G = {
-        turn: 1,
-        activeActor: 'player',
-        spinning: false,
-        pendingAction: null,
-        log: [],
-        player: {
-          hp: 20,
-          deck: [...playerDeck],
-          hand: playerOpeningCards.map(makeInstance),
-          board: [],
-          handCount: playerOpeningCards.length,
-          mana: 0,
-          maxMana: 0,
-          charges: 3,
-          luck: 0,
-          landDone: false,
-          focused: false,
-          selectedHandIdx: null,
-        },
-        enemy: {
-          hp: 20,
-          deck: [...enemyDeck],
-          hand: enemyOpeningCards.map(makeInstance),
-          board: [],
-          handCount: enemyOpeningCards.length,
-          mana: 0,
-          maxMana: 0,
-          charges: 3,
-          luck: 0,
-          landDone: false,
-          focused: false,
-          selectedHandIdx: null,
-        }
-      };
-
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('game').style.display = 'grid';
-
-      wheelRotation = 0;
-      drawWheel();
-      addLog('Run začal. Hráč i enemy používají Arcane Wheel.');
-      setPreview(null);
-      startOfTurn('player');
-      updateHUD();
-      setPendingAction(null);
-    }
-
-    function resetGame() {
-      document.getElementById('end-overlay').style.display = 'none';
-      document.getElementById('game').style.display = 'none';
-      document.getElementById('setup').style.display = 'flex';
-      document.getElementById('log').innerHTML = '';
-      G = {};
-      wheelRotation = 0;
-      drawWheel();
-      setPreview(null);
-      document.getElementById('wheel-center').classList.remove('hidden');
-    }
-
-    drawWheel();
-  </script>
+    requestAnimationFrame(fr);
+  });
+
+  const result=segs[ci];
+  glowSeg=ci;
+  drawWheel();
+  flashResult(result);
+  if(result==='CRIT'||result==='CHAOS'){shake();critSound();}
+  if(result==='FAIL') failSound();
+  log(`Wheel: ${RS[result].lbl} — ${AM[G.pendingAction.type].name}${G.pendingAction.card?' ('+G.pendingAction.card.name+')':''}`,
+    result==='CRIT'||result==='CHAOS'?'c':'s');
+
+  await resolve(G.pendingAction,result);
+  G.pendingAction=null;G.spinning=false;
+  glowSeg=-1;
+  setPending(null);hud();drawWheel();
+  if(gameOver())return;
+  if(G.activeActor==='enemy')setTimeout(enemyStep,800);
+}
+
+// ── ENEMY AI ──────────────────────────────────────────────────────
+async function enemyStep(){
+  if(G.activeActor!=='enemy'||G.spinning||gameOver())return;
+  const e=G.enemy;
+  if(e.charges<=0){await finishEnemyTurn();return;}
+
+  const land=!e.landDone?e.hand.find(isLand):null;
+  const spells=e.hand.filter(c=>!isLand(c)&&c.cmc<=e.mana).sort((a,b)=>b.cmc-a.cmc);
+  const atks=e.board.filter(c=>isCrea(c)&&!c.tapped&&!c.summoningSick);
+  const boardPow=atks.reduce((s,c)=>s+(parseInt(c.power)||0),0);
+
+  let action=null;
+  const d=G.diff;
+
+  if(d==='hard'){
+    if(G.player.hp<=boardPow&&atks.length) action={type:'ATTACK',actorId:'enemy'};
+    else if(e.hp<=8 && spells.length) action={type:'CAST',actorId:'enemy',card:spells[0]};
+    else if(spells.length) action={type:'CAST',actorId:'enemy',card:spells[0]};
+    else if(land) action={type:'LAND',actorId:'enemy',card:land};
+    else if(atks.length) action={type:'ATTACK',actorId:'enemy'};
+    else if(e.luck<2 && Math.random()>.45) action={type:'FOCUS',actorId:'enemy'};
+    else action={type:'DRAW',actorId:'enemy'};
+  } else if(d==='medium'){
+    if(land) action={type:'LAND',actorId:'enemy',card:land};
+    else if(spells.length&&Math.random()>.2) action={type:'CAST',actorId:'enemy',card:spells[0]};
+    else if(atks.length&&Math.random()>.3) action={type:'ATTACK',actorId:'enemy'};
+    else if(Math.random()>.55) action={type:'FOCUS',actorId:'enemy'};
+    else action={type:'DRAW',actorId:'enemy'};
+  } else {
+    if(land&&Math.random()>.2) action={type:'LAND',actorId:'enemy',card:land};
+    else if(atks.length&&Math.random()>.55) action={type:'ATTACK',actorId:'enemy'};
+    else if(Math.random()>.7) action={type:'FOCUS',actorId:'enemy'};
+    else action={type:'DRAW',actorId:'enemy'};
+  }
+
+  if(!action){await finishEnemyTurn();return;}
+  setPending(action);
+  setTimeout(()=>doSpin(),900);
+}
+
+async function finishEnemyTurn(){
+  log('Enemy ukončil tah.','e');
+  G.turn++;G.activeActor='player';
+  startTurn('player');
+  const c=await drawC('player',true);
+  if(c){log(`Draw: ${c.name}.`,'p');preview(c);}
+  setPending(null);setPhase('m');hud();
+}
+
+async function endTurn(){
+  if(G.spinning||G.activeActor!=='player')return;
+  while(G.player.hand.length>7){const d=G.player.hand.pop();log(`Discard to 7: ${d.name}.`,'s');}
+  log('Ukončuješ tah.','p');
+  G.activeActor='enemy';startTurn('enemy');
+  const c=await drawC('enemy',true);if(c)log('Enemy lízl kartu.','e');
+  setPending(null);setPhase('u');hud();
+  setTimeout(enemyStep,700);
+}
+
+function startTurn(id){
+  const a=G[id];
+  a.board.forEach(c=>{c.tapped=false;c.summoningSick=false;c.dmg=0;});
+  a.landDone=false;a.charges=3;a.mana=a.maxMana;a.focused=false;
+  if(id==='player')a.selIdx=null;
+}
+
+// ── GAME OVER ─────────────────────────────────────────────────────
+function gameOver(){
+  if(G.player.hp>0&&G.enemy.hp>0)return false;
+  const win=G.enemy.hp<=0,draw=G.player.hp<=0&&G.enemy.hp<=0;
+  document.getElementById('end-title').textContent=draw?'Remíza':win?'Vítězství!':'Prohra';
+  document.getElementById('end-sub').textContent=draw?'Oba jste padli v arcane chaosu.':win?`${G.eName} byl poražen!`:`${G.eName} zvítězil.`;
+  document.getElementById('ov-end').style.display='flex';
+  return true;
+}
+
+// ── LOG ───────────────────────────────────────────────────────────
+function log(text,type='s'){
+  G.log=G.log||[];G.log.unshift({text,type});G.log=G.log.slice(0,24);
+  const el=document.getElementById('log');
+  const map={p:'lp',e:'le',s:'ls',c:'lc'};
+  el.innerHTML=G.log.map(l=>`<div class="li ${map[l.type]||'ls'}">${l.text}</div>`).join('');
+}
+function lbl(id){return id==='player'?'Ty':'Enemy';}
+
+// ── MULLIGAN ──────────────────────────────────────────────────────
+function showMulligan(){
+  const hand=G.player.hand;
+  document.getElementById('mull-sub').textContent=
+    mulliganCount===0?'Toto je tvoje počáteční ruka. Chceš mulligan?':
+    `Mulligan #${mulliganCount} — ruka po promíchání.`;
+  document.getElementById('mull-count').textContent=
+    mulliganCount>=2?'Poslední mulligan (ruka '+hand.length+' karet).':'';
+  const el=document.getElementById('mull-hand');
+  el.innerHTML=hand.map(c=>{
+    const imgStyle=c.imageUrl?`background-image:url('${c.imageUrl.replace(/'/g,"%27")}')`:'';
+    const cc=cclass(c);
+    return `<div class="mull-card ${cc}" style="${imgStyle}" onclick="preview(G.player.hand.find(x=>x.uid==='${c.uid}'))">
+      <div class="cname-ov">${c.name}</div></div>`;
+  }).join('');
+  document.getElementById('mull-btn').disabled=mulliganCount>=2;
+  document.getElementById('ov-mulligan').style.display='flex';
+}
+
+async function doMulligan(){
+  mulliganCount++;
+  document.getElementById('mull-btn').disabled=true;
+  G.player.deck.push(...G.player.hand.map(c=>c.name));
+  G.player.hand=[];
+  shuffle(G.player.deck);
+  document.getElementById('mull-sub').textContent='Líže nová ruka...';
+  document.getElementById('mull-hand').innerHTML='<div style="color:var(--muted);font-size:13px;padding:20px;">Líže karty...</div>';
+  for(let i=0;i<7;i++) await drawC('player',true);
+  showMulligan();
+}
+
+function keepHand(){
+  document.getElementById('ov-mulligan').style.display='none';
+  setPhase('m');hud();
+  log('Run začal!','s');
+  log('Tip: klikni na kartu v ruce pro auto-queue akce. Hover funguje i na battlefield.', 's');
+}
+
+// ── GAME START ────────────────────────────────────────────────────
+async function startGame(diff){
+  const names=parseDeck();
+  if(names.length<10){alert('Deck musí mít aspoň 10 karet.');return;}
+  initAudio();
+  document.getElementById('ov-setup').style.display='none';
+  document.getElementById('ov-loading').style.display='flex';
+  shuffle(names);
+
+  const pN=names.slice(0,7),eN=names.slice(7,14);
+  const pDeck=names.slice(14),eDeck=[...names.slice(14)].reverse();
+
+  document.getElementById('load-txt').textContent='Stahuju karty...';
+  document.getElementById('load-sub').textContent=`0 / ${pN.length+eN.length} karet`;
+
+  let loaded=0;
+  const fetchWithProgress=async(n)=>{
+    const c=await getCard(n);
+    loaded++;
+    document.getElementById('load-sub').textContent=`${loaded} / ${pN.length+eN.length} karet`;
+    return c;
+  };
+  const [pCards,eCards]=await Promise.all([
+    Promise.all(pN.map(fetchWithProgress)),
+    Promise.all(eN.map(fetchWithProgress))
+  ]);
+
+  const hasBlue=names.some(n=>lower(n).includes('island')||lower(n).includes('counterspell'));
+  const hasWhite=names.some(n=>lower(n).includes('plains')||lower(n).includes('angel'));
+  const eName=hasBlue?'The Archmage':hasWhite?'The Paladin':'Dread Lord Nyx';
+
+  mulliganCount=0;
+  previewLockedUid=null;
+  wheelManualHidden=false;
+  glowSeg=-1;
+
+  G={
+    turn:1,activeActor:'player',spinning:false,pendingAction:null,
+    phase:'m',diff,eName,log:[],
+    player:{hp:20,deck:[...pDeck],hand:pCards.map(mkInst),board:[],mana:0,maxMana:0,charges:3,luck:0,landDone:false,focused:false,selIdx:null},
+    enemy:{hp:20,deck:[...eDeck],hand:eCards.map(mkInst),board:[],mana:0,maxMana:0,charges:3,luck:0,landDone:false,focused:false,selIdx:null},
+  };
+
+  document.getElementById('e-name').textContent=eName;
+  document.getElementById('e-av').textContent=eName[0];
+  document.getElementById('ov-loading').style.display='none';
+  document.getElementById('game').style.display='grid';
+
+  wRot=0;
+  drawWheel();
+  startTurn('player');
+  setPending(null);
+  preview(null);
+  hud();
+  setWheelHidden(false);
+  showMulligan();
+}
+
+function resetGame(){
+  document.getElementById('ov-end').style.display='none';
+  document.getElementById('game').style.display='none';
+  document.getElementById('ov-setup').style.display='flex';
+  document.getElementById('log').innerHTML='';
+  G={};wRot=0;glowSeg=-1;previewLockedUid=null;
+  drawWheel();preview(null);
+}
+
+// ── AUTO HIDE WHEEL ON BATTLEFIELD HOVER ─────────────────────────
+['pboard','eboard'].forEach(id=>{
+  const zone=document.getElementById(id);
+  zone.addEventListener('mouseenter',()=>{ if(!wheelManualHidden) setWheelHidden(true); });
+  zone.addEventListener('mouseleave',()=>{ if(!wheelManualHidden) setWheelHidden(false); });
+});
+
+// ── KEYBINDS ──────────────────────────────────────────────────────
+window.addEventListener('keydown',e=>{
+  if(document.getElementById('ov-setup').style.display!=='none') return;
+  if(document.getElementById('ov-mulligan').style.display==='flex') return;
+  if(G.spinning) return;
+  if(e.target && ['TEXTAREA','INPUT'].includes(e.target.tagName)) return;
+  if(e.key==='1') qa('ATTACK');
+  if(e.key==='2') qa('LAND');
+  if(e.key==='3') qa('CAST');
+  if(e.key==='4') qa('DRAW');
+  if(e.key==='5') qa('FOCUS');
+  if(e.code==='Space'){ e.preventDefault(); doSpin(); }
+  if(e.key.toLowerCase()==='w') toggleWheel();
+});
+
+drawWheel();
+</script>
 </body>
 </html>
